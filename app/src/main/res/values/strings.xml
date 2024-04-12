@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">HealthMate</string>
+    <string name="log_in">Zaloguj się</string>
+    <string name="register">Zarejestruj się</string>
+    <string name="view_account">Mój profil</string>
+    <string name="view_main_panel">Panel główny</string>
+    <string name="view_statistics">Zobacz historię pomiarów</string>
+</resources>
