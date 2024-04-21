@@ -5,4 +5,5 @@
     <string name="view_account">Mój profil</string>
     <string name="view_main_panel">Panel główny</string>
     <string name="view_statistics">Zobacz historię pomiarów</string>
+    <string name="back_button">Powrót</string>
 </resources>
