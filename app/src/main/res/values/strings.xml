@@ -6,4 +6,11 @@
     <string name="view_main_panel">Panel główny</string>
     <string name="view_statistics">Zobacz historię pomiarów</string>
     <string name="back_button">Powrót</string>
+
+    <string name="username">Login</string>
+    <string name="password">Hasło</string>
+    <string name="wrong_username">Niepoprawny login</string>
+    <string name="enter_username">Wpisz login</string>
+    <string name="wrong_password">Niepoprawne hasło</string>
+    <string name="enter_password">Wpisz hasło</string>
 </resources>

@@ -147,6 +147,6 @@ private fun cancelAndNavigateToStart(
     viewModel: HealthMateViewModel,
     navController: NavHostController
 ) {
-    viewModel.resetViewModel()
+    /*viewModel.resetViewModel()*/
     navController.popBackStack(HealthMateScreen.Start.name, inclusive = false)
 }

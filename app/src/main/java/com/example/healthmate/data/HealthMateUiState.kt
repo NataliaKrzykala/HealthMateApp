@@ -1,5 +1,5 @@
 package com.example.healthmate.data
 
-class HealthMateUiState {
-    val someWord: String = ""
-}
+data class HealthMateUiState (
+    val areCredentialsWrong: Boolean = false
+)
