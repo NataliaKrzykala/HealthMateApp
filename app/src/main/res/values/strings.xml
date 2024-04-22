@@ -7,10 +7,15 @@
     <string name="view_statistics">Zobacz historię pomiarów</string>
     <string name="back_button">Powrót</string>
 
+    <string name="name">Imię</string>
     <string name="username">Login</string>
     <string name="password">Hasło</string>
+    <string name="enter_name">Wpisz imię</string>
     <string name="wrong_username">Niepoprawny login</string>
     <string name="enter_username">Wpisz login</string>
     <string name="wrong_password">Niepoprawne hasło</string>
     <string name="enter_password">Wpisz hasło</string>
+    <string name="create_login">Utwórz login</string>
+    <string name="create_password">Utwórz hasło</string>
+
 </resources>

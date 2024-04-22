@@ -51,7 +51,6 @@ fun LogInScreen(
 ){
     val healthMateUiState by healthMateViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
-    val isWrongCheck = healthMateUiState.areCredentialsWrong
 
     Column(
         modifier = Modifier
@@ -65,7 +64,6 @@ fun LogInScreen(
         LogInLayout(
             onUserLoginChanged = { healthMateViewModel.updateUserLogin(it) },
             onUserPasswordChanged = { healthMateViewModel.updateUserPassword(it) },
-            onLogInButtonClicked = {healthMateViewModel.isAuthenticationWrong()},
             username = healthMateViewModel.username,
             password = healthMateViewModel.password,
             /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
@@ -79,11 +77,11 @@ fun LogInScreen(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 healthMateViewModel.isAuthenticationWrong()
-                if (!healthMateUiState.areCredentialsWrong) {
-                    // Navigate to another page or perform any action on successful login
+                val areCredentialsWrong = healthMateViewModel.uiState.value.areCredentialsWrong
+                if (!areCredentialsWrong) {
                     onLogInButtonClicked()
                 } else {
-                    // Handle incorrect credentials case, if needed
+
                 }
             }
         ) {
@@ -97,7 +95,6 @@ fun LogInScreen(
 fun LogInLayout(
     onUserLoginChanged: (String) -> Unit,
     onUserPasswordChanged: (String) -> Unit,
-    onLogInButtonClicked: (String) -> Unit,
     username: String,
     password: String,
     /*onKeyboardDone: () -> Unit,*/

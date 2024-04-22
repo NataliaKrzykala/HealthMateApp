@@ -51,14 +51,14 @@ enum class HealthMateScreen(@StringRes val title: Int) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthMateAppBar(
-    /*currentScreen: HealthMateScreen,*/
+    currentScreen: HealthMateScreen,
     canNavigateBack: Boolean,
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
-        /*title = { Text(text = stringResource(currentScreen.title), style = MaterialTheme.typography.displayMedium) },*/
-        title = { /* Your empty Text composable */ },
+        title = { Text(text = stringResource(currentScreen.title), style = MaterialTheme.typography.displayMedium) },
+        /*title = { /* Your empty Text composable */ },*/
         colors = TopAppBarDefaults.mediumTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
@@ -89,7 +89,7 @@ fun HealthMateApp(
     Scaffold(
         topBar = {
             HealthMateAppBar(
-                /*currentScreen = currentScreen,*/
+                currentScreen = currentScreen,
                 canNavigateBack = navController.previousBackStackEntry != null,
                 navigateUp = { navController.navigateUp() }
             )
@@ -120,7 +120,7 @@ fun HealthMateApp(
             composable(route = HealthMateScreen.Register.name) {
                 RegisterScreen(
                     onSubmitButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
-                    onCancelButtonClicked = { cancelAndNavigateToStart(viewModel, navController) },
+                    /*onCancelButtonClicked = { cancelAndNavigateToStart(viewModel, navController) },*/
                     modifier = Modifier.fillMaxHeight()
                 )
             }
