@@ -113,8 +113,7 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.LogIn.name) {
                 LogInScreen(
-                    onSubmitButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
-                    onCancelButtonClicked = { cancelAndNavigateToStart(viewModel, navController) },
+                    onLogInButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
                     modifier = Modifier.fillMaxHeight()
                 )
             }

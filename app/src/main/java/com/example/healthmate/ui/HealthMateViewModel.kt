@@ -20,6 +20,14 @@ class HealthMateViewModel : ViewModel() {
     var password by mutableStateOf("")
         private set
 
+    fun updateUserLogin(usernameInput: String){
+        username = usernameInput
+    }
+
+    fun updateUserPassword(passwordInput: String){
+        password = passwordInput
+    }
+
     fun isAuthenticationWrong() {
         val updatedUiState = if (username.equals("admin") && password.equals("admin")) {
             _uiState.value.copy(areCredentialsWrong = false)

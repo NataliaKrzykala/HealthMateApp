@@ -27,7 +27,9 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.healthmate.R
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -44,12 +46,12 @@ import com.example.healthmate.ui.theme.HealthMateTheme
 @Composable
 fun LogInScreen(
     healthMateViewModel: HealthMateViewModel = viewModel(),
-    onCancelButtonClicked: () -> Unit,
-    onSubmitButtonClicked: () -> Unit,
+    onLogInButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
 ){
     val healthMateUiState by healthMateViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
+    val isWrongCheck = healthMateUiState.areCredentialsWrong
 
     Column(
         modifier = Modifier
@@ -61,7 +63,9 @@ fun LogInScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         LogInLayout(
-            onUserGuessChanged = { },
+            onUserLoginChanged = { healthMateViewModel.updateUserLogin(it) },
+            onUserPasswordChanged = { healthMateViewModel.updateUserPassword(it) },
+            onLogInButtonClicked = {healthMateViewModel.isAuthenticationWrong()},
             username = healthMateViewModel.username,
             password = healthMateViewModel.password,
             /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
@@ -70,11 +74,18 @@ fun LogInScreen(
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(mediumPadding),
-            context = LocalContext.current
         )
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { healthMateViewModel.isAuthenticationWrong() }
+            onClick = {
+                healthMateViewModel.isAuthenticationWrong()
+                if (!healthMateUiState.areCredentialsWrong) {
+                    // Navigate to another page or perform any action on successful login
+                    onLogInButtonClicked()
+                } else {
+                    // Handle incorrect credentials case, if needed
+                }
+            }
         ) {
             Text(text = stringResource(R.string.log_in))
             /*Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()*/
@@ -84,13 +95,13 @@ fun LogInScreen(
 
 @Composable
 fun LogInLayout(
+    onUserLoginChanged: (String) -> Unit,
+    onUserPasswordChanged: (String) -> Unit,
+    onLogInButtonClicked: (String) -> Unit,
     username: String,
     password: String,
-    /*onLogInButtonClicked: () -> Unit,*/
-    onUserGuessChanged: (String) -> Unit,
     /*onKeyboardDone: () -> Unit,*/
     isWrong: Boolean,
-    context: Context,
     modifier: Modifier = Modifier
 ) {
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
@@ -119,16 +130,16 @@ fun LogInLayout(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     disabledContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                onValueChange = onUserGuessChanged,
+                onValueChange = onUserLoginChanged,
                 label = {
-                    if (isWrong) {
+                    /*if (isWrong) {
                         Text(stringResource(R.string.wrong_username))
-                    } else {
+                    } else {*/
                         Text(stringResource(R.string.enter_username))
-                    }
+                    /*}*/
                 },
                 leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = stringResource(R.string.username))},
-                isError = isWrong,
+                /*isError = isWrong,*/
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 )
@@ -146,7 +157,7 @@ fun LogInLayout(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     disabledContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                onValueChange = onUserGuessChanged,
+                onValueChange = onUserPasswordChanged,
                 label = {
                     if (isWrong) {
                         Text(stringResource(R.string.wrong_password))
@@ -174,13 +185,11 @@ fun LogInLayout(
 fun LogInPreview() {
     HealthMateTheme {
         LogInScreen(
-            healthMateViewModel = {},
-            onSubmitButtonClicked = {},
-            onCancelButtonClicked = {},
-            modifier = Modifier.fillMaxHeight()
+            onLogInButtonClicked = {},
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(dimensionResource(R.dimen.padding_medium))
         )
     }
 }
 
-
-/*healthMateViewModel.updateUserGuess(it) */
