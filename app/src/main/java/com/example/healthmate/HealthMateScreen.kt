@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +35,7 @@ import com.example.healthmate.ui.LogInScreen
 import com.example.healthmate.ui.MainPanelScreen
 import com.example.healthmate.ui.RegisterScreen
 import com.example.healthmate.ui.StartScreen
+import com.example.healthmate.ui.SettingsScreen
 
 
 enum class HealthMateScreen(@StringRes val title: Int) {
@@ -42,6 +44,7 @@ enum class HealthMateScreen(@StringRes val title: Int) {
     Register(title = R.string.register),
     MainPanel(title = R.string.view_main_panel),
     Statistics(title = R.string.view_statistics),
+    Settings(title = R.string.settings),
     Account(title = R.string.view_account),
 }
 
@@ -54,6 +57,7 @@ fun HealthMateAppBar(
     currentScreen: HealthMateScreen,
     canNavigateBack: Boolean,
     navigateUp: () -> Unit,
+    navigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
@@ -71,6 +75,14 @@ fun HealthMateAppBar(
                         contentDescription = stringResource(R.string.back_button)
                     )
                 }
+            }
+        } ,
+        actions = {
+            IconButton(onClick = navigateToSettings) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.settings)
+                )
             }
         }
     )
@@ -91,7 +103,8 @@ fun HealthMateApp(
             HealthMateAppBar(
                 currentScreen = currentScreen,
                 canNavigateBack = navController.previousBackStackEntry != null,
-                navigateUp = { navController.navigateUp() }
+                navigateUp = { navController.navigateUp() },
+                navigateToSettings = { navController.navigate(HealthMateScreen.Settings.name) }
             )
         }
     ) { innerPadding ->
@@ -137,10 +150,17 @@ fun HealthMateApp(
                     modifier = Modifier.fillMaxHeight()
                 )
             }
+            composable(route = HealthMateScreen.Settings.name) {
+                SettingsScreen(
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
         }
 
     }
 }
+
+
 
 private fun cancelAndNavigateToStart(
     viewModel: HealthMateViewModel,

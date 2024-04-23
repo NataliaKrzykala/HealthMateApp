@@ -6,6 +6,7 @@
     <string name="view_main_panel">Panel główny</string>
     <string name="view_statistics">Zobacz historię pomiarów</string>
     <string name="back_button">Powrót</string>
+    <string name="settings">Ustawienia</string>
 
     <string name="name">Imię</string>
     <string name="username">Login</string>
