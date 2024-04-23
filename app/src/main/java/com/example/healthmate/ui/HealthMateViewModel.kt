@@ -74,4 +74,9 @@ class HealthMateViewModel : ViewModel() {
         }
         _uiState.value = updatedUiState
     }
+
+    fun togglePasswordVisibility() {
+        val updatedUiState = _uiState.value.copy(isPasswordVisible = !_uiState.value.isPasswordVisible)
+        _uiState.value = updatedUiState
+    }
 }

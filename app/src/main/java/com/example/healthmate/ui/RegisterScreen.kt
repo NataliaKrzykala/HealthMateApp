@@ -14,10 +14,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +34,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -63,6 +67,8 @@ fun RegisterScreen(
             name = healthMateViewModel.name,
             username = healthMateViewModel.usernameRegister,
             password = healthMateViewModel.passwordRegister,
+            onPasswordVisibilityToggle = { healthMateViewModel.togglePasswordVisibility() },
+            isPasswordVisible = healthMateUiState.isPasswordVisible,
             /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
             isWrong = healthMateUiState.loginAlreadyExists,
             modifier = Modifier
@@ -96,6 +102,8 @@ fun RegisterLayout(
     name: String,
     username: String,
     password: String,
+    onPasswordVisibilityToggle: () -> Unit,
+    isPasswordVisible: Boolean,
     /*onKeyboardDone: () -> Unit,*/
     isWrong: Boolean,
     modifier: Modifier = Modifier
@@ -198,7 +206,21 @@ fun RegisterLayout(
                     R.string.password)
                 )
                 },
-                visualTransformation = PasswordVisualTransformation(),
+               /* visualTransformation = if (isPasswordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },*/
+                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                //visualTransformation = PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = onPasswordVisibilityToggle) {
+                        Icon(
+                            imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = "Toggle password visibility"
+                        )
+                    }
+                },
                 /*isError = isWrong,*/
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done

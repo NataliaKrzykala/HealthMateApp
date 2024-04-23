@@ -35,9 +35,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.healthmate.HealthMateApp
@@ -66,6 +70,8 @@ fun LogInScreen(
             onUserPasswordChanged = { healthMateViewModel.updateUserPassword(it) },
             username = healthMateViewModel.username,
             password = healthMateViewModel.password,
+            onPasswordVisibilityToggle = { healthMateViewModel.togglePasswordVisibility() },
+            isPasswordVisible = healthMateUiState.isPasswordVisible,
             /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
             isWrong = healthMateUiState.areCredentialsWrong,
             modifier = Modifier
@@ -97,6 +103,8 @@ fun LogInLayout(
     onUserPasswordChanged: (String) -> Unit,
     username: String,
     password: String,
+    onPasswordVisibilityToggle: () -> Unit,
+    isPasswordVisible: Boolean,
     /*onKeyboardDone: () -> Unit,*/
     isWrong: Boolean,
     modifier: Modifier = Modifier
@@ -163,7 +171,17 @@ fun LogInLayout(
                     }
                 },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = stringResource(R.string.password))},
-                visualTransformation = PasswordVisualTransformation(),
+                //visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                //visualTransformation = PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = onPasswordVisibilityToggle) {
+                        Icon(
+                            imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = "Toggle password visibility"
+                        )
+                    }
+                },
                 isError = isWrong,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
