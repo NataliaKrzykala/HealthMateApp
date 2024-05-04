@@ -79,4 +79,12 @@ class HealthMateViewModel : ViewModel() {
         val updatedUiState = _uiState.value.copy(isPasswordVisible = !_uiState.value.isPasswordVisible)
         _uiState.value = updatedUiState
     }
+
+    fun selectDevice(selectedDevice: Int) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                device = selectedDevice
+            )
+        }
+    }
 }

@@ -7,6 +7,7 @@
     <string name="view_statistics">Zobacz historię pomiarów</string>
     <string name="back_button">Powrót</string>
     <string name="settings">Ustawienia</string>
+    <string name="measurement">Pomiar</string>
 
     <string name="name">Imię</string>
     <string name="username">Login</string>
@@ -18,5 +19,10 @@
     <string name="enter_password">Wpisz hasło</string>
     <string name="create_login">Utwórz login</string>
     <string name="create_password">Utwórz hasło</string>
+    <string name="measure">Zrób pomiar</string>
+    
+    <string name="scales">Waga</string>
+    <string name="manometer">Ciśnieniomierz</string>
+    <string name="heart_rate_monitor">Pulsometr</string>
 
 </resources>

@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.healthmate.R
+import com.example.healthmate.data.DataSource
 import com.example.healthmate.ui.AccountScreen
 import com.example.healthmate.ui.HealthMateViewModel
 import com.example.healthmate.ui.LogInScreen
@@ -36,6 +37,8 @@ import com.example.healthmate.ui.MainPanelScreen
 import com.example.healthmate.ui.RegisterScreen
 import com.example.healthmate.ui.StartScreen
 import com.example.healthmate.ui.SettingsScreen
+import com.example.healthmate.ui.MeasureScreen
+import com.example.healthmate.ui.StatisticsScreen
 
 
 enum class HealthMateScreen(@StringRes val title: Int) {
@@ -46,6 +49,7 @@ enum class HealthMateScreen(@StringRes val title: Int) {
     Statistics(title = R.string.view_statistics),
     Settings(title = R.string.settings),
     Account(title = R.string.view_account),
+    Measure(title = R.string.measurement)
 }
 
 /**
@@ -139,8 +143,12 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.MainPanel.name) {
                 MainPanelScreen(
-                    onStatisticsButtonClicked = { navController.navigate(HealthMateScreen.Statistics.name) },
+                    rememberedDevices = DataSource.rememberedDevices,
+                    onStatisticsButtonClicked = {
+                        viewModel.selectDevice(it)
+                        navController.navigate(HealthMateScreen.Statistics.name) },
                     onAccountButtonClicked = { navController.navigate(HealthMateScreen.Account.name) },
+                    onMeasureButtonClicked = { navController.navigate(HealthMateScreen.Measure.name) },
                     modifier = Modifier.fillMaxHeight()
                 )
             }
@@ -152,6 +160,17 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.Settings.name) {
                 SettingsScreen(
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
+            composable(route = HealthMateScreen.Measure.name) {
+                MeasureScreen(
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
+            composable(route = HealthMateScreen.Statistics.name) {
+                StatisticsScreen(
+                    healthMateUiState = uiState,
                     modifier = Modifier.fillMaxHeight()
                 )
             }
