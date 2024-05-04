@@ -80,7 +80,7 @@ class HealthMateViewModel : ViewModel() {
         _uiState.value = updatedUiState
     }
 
-    fun selectDevice(selectedDevice: Int) {
+    fun selectDevice(selectedDevice: Pair<Int, Int>) {
         _uiState.update { currentState ->
             currentState.copy(
                 device = selectedDevice

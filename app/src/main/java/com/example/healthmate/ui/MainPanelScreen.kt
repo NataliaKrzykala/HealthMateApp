@@ -27,7 +27,7 @@ import com.example.healthmate.ui.theme.HealthMateTheme
 @Composable
 fun MainPanelScreen(
     rememberedDevices: List<Pair<Int, Int>>,
-    onStatisticsButtonClicked: (Int) -> Unit,
+    onStatisticsButtonClicked: (Pair<Int, Int>) -> Unit,
     onAccountButtonClicked: () -> Unit,
     onMeasureButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
@@ -48,7 +48,7 @@ fun MainPanelScreen(
             rememberedDevices.forEach { item ->
                 SelectRememberedDeviceButton(
                     labelResourceId = item.first,
-                    onClick = { onStatisticsButtonClicked(item.second) }
+                    onClick = { onStatisticsButtonClicked(item) }
                 )
             }
         }

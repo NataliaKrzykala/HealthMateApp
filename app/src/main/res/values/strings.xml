@@ -25,4 +25,10 @@
     <string name="manometer">Ciśnieniomierz</string>
     <string name="heart_rate_monitor">Pulsometr</string>
 
+    <string name="last_measurement">Ostatni pomiar</string>
+    <string name="history_of_measurements">Historia pomiarów</string>
+    <string name="value">Wartość</string>
+    <string name="date">Data</string>
+    <string name="time">Godzina</string>
+
 </resources>
