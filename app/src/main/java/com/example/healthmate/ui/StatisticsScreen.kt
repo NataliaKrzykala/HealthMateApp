@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
@@ -54,7 +55,8 @@ fun StatisticsScreen(
         Card(
             modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -72,7 +74,8 @@ fun StatisticsScreen(
         Card(
             modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -106,7 +109,8 @@ fun StatisticsScreen(
         Card(
             modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
             Box(
                 modifier = Modifier

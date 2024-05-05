@@ -31,4 +31,7 @@
     <string name="date">Data</string>
     <string name="time">Godzina</string>
 
+    <string name="your_devices">Twoje urządzenia</string>
+    <string name="connecting">Nawiązywanie połączenia</string>
+
 </resources>

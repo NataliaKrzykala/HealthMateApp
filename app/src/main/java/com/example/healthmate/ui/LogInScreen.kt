@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.outlined.Visibility
@@ -111,86 +112,105 @@ fun LogInLayout(
 ) {
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
-    Card(
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(mediumPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(mediumPadding)
+    Column(
+        modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally)
+    {
+        Card(
+            modifier = Modifier
+                .wrapContentSize(Alignment.Center),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
-            Text(
-                text = stringResource(R.string.log_in),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium
-            )
-            OutlinedTextField(
-                value = username,
-                singleLine = true,
-                shape = MaterialTheme.shapes.large,
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surface,
-                ),
-                onValueChange = onUserLoginChanged,
-                label = {
-                    /*if (isWrong) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(mediumPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(mediumPadding)
+            ) {
+                Text(
+                    text = stringResource(R.string.log_in),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                OutlinedTextField(
+                    value = username,
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    onValueChange = onUserLoginChanged,
+                    label = {
+                        /*if (isWrong) {
                         Text(stringResource(R.string.wrong_username))
                     } else {*/
                         Text(stringResource(R.string.enter_username))
-                    /*}*/
-                },
-                leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = stringResource(R.string.username))},
-                /*isError = isWrong,*/
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done
-                )
-                /*keyboardActions = KeyboardActions(
-                    onDone = { }
-                )*/
-            )
-            OutlinedTextField(
-                value = password,
-                singleLine = true,
-                shape = MaterialTheme.shapes.large,
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    disabledContainerColor = MaterialTheme.colorScheme.surface,
-                ),
-                onValueChange = onUserPasswordChanged,
-                label = {
-                    if (isWrong) {
-                        Text(stringResource(R.string.wrong_password))
-                    } else {
-                        Text(stringResource(R.string.enter_password))
-                    }
-                },
-                leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = stringResource(R.string.password))},
-                //visualTransformation = PasswordVisualTransformation(),
-                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                //visualTransformation = PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = onPasswordVisibilityToggle) {
+                        /*}*/
+                    },
+                    leadingIcon = {
                         Icon(
-                            imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                            contentDescription = "Toggle password visibility"
+                            imageVector = Icons.Default.Person,
+                            contentDescription = stringResource(R.string.username)
                         )
-                    }
-                },
-                isError = isWrong,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done
-                )
-                /*keyboardActions = KeyboardActions(
+                    },
+                    /*isError = isWrong,*/
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done
+                    )
+                    /*keyboardActions = KeyboardActions(
                     onDone = { }
                 )*/
-            )
+                )
+                OutlinedTextField(
+                    value = password,
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    onValueChange = onUserPasswordChanged,
+                    label = {
+                        if (isWrong) {
+                            Text(stringResource(R.string.wrong_password))
+                        } else {
+                            Text(stringResource(R.string.enter_password))
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = stringResource(R.string.password)
+                        )
+                    },
+                    //visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    //visualTransformation = PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = onPasswordVisibilityToggle) {
+                            Icon(
+                                imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = "Toggle password visibility"
+                            )
+                        }
+                    },
+                    isError = isWrong,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done
+                    )
+                    /*keyboardActions = KeyboardActions(
+                    onDone = { }
+                )*/
+                )
 
+            }
         }
     }
 }
