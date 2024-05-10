@@ -64,8 +64,10 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
 
-    implementation("androidx.compose.material:material-icons-extended:1.0.0")
+    implementation("androidx.compose.material:material-icons-extended:1.6.7")
     implementation("com.airbnb.android:lottie-compose:6.4.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+
 
     testImplementation(libs.junit)
 

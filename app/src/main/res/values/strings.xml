@@ -33,5 +33,7 @@
 
     <string name="your_devices">Twoje urządzenia</string>
     <string name="connecting">Nawiązywanie połączenia</string>
+    <string name="device_support_for_ble">To urządzenie nie wspiera Bluetooth Low Energy</string>
+    <string name="ble_connected_succesfully">Połączono z Bluetooth Low Energy</string>
 
 </resources>

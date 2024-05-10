@@ -1,5 +1,7 @@
 package com.example.healthmate
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,8 +12,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.healthmate.ui.theme.HealthMateTheme
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.BluetoothLeScanner
+import android.content.Intent
+import android.os.Build
+import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.ActivityResult
+import com.example.healthmate.ble.BluetoothHandler
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() { /*ComponentActivity*/
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -24,6 +36,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        val bluetoothHandler = BluetoothHandler(
+            this,
+            activityResultRegistry,
+            onScanResult = ::btScan
+        )
+
+        bluetoothHandler.checkAndRequestBluetoothPermission()
+    }
+
+
+    private fun btScan(){
+        Toast.makeText(this, R.string.ble_connected_succesfully, Toast.LENGTH_LONG).show()
     }
 }
 
