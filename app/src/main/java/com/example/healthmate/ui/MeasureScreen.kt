@@ -1,40 +1,30 @@
 package com.example.healthmate.ui
 
 import android.bluetooth.BluetoothDevice
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.healthmate.R
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.healthmate.R
 import com.example.healthmate.ble.BluetoothHandler
-import com.example.healthmate.ui.theme.HealthMateTheme
 import com.example.healthmate.ui.theme.Typography
 
 
@@ -43,6 +33,7 @@ fun MeasureScreen(
     modifier: Modifier = Modifier,
     bluetoothHandler: BluetoothHandler
 ) {
+    //val pairedDevices0: Set<BluetoothDevice> = mBtAdapter.getBondedDevices()
     val pairedDevices = bluetoothHandler.getBondedDevices()
 
     val composition by rememberLottieComposition(
@@ -74,7 +65,7 @@ fun MeasureScreen(
                 )
                 Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
                 Text(
-                    stringResource(R.string.connecting),
+                    stringResource(R.string.paired_list),
                     style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                 )
             }else{

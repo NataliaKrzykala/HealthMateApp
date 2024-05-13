@@ -7,7 +7,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.widget.Toast
+import android.util.Log
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
 
@@ -19,15 +19,17 @@ class BluetoothHandler(
 
     private var btPermission = false
 
+    private val bluetoothAdapter: BluetoothAdapter? by lazy {
+        val bluetoothManager: BluetoothManager? = activity.getSystemService(BluetoothManager::class.java)
+        bluetoothManager?.adapter
+    }
+
     private val bluetoothPermissionLauncher =
         activityResultRegistry.register(
             "bluetooth_permission_request",
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (isGranted) {
-                val bluetoothManager: BluetoothManager =
-                    activity.getSystemService(BluetoothManager::class.java)
-                val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
                 btPermission = true
                 if (bluetoothAdapter?.isEnabled == false) {
                     val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -58,22 +60,14 @@ class BluetoothHandler(
         }
     }
 
-    fun bluetoothEnabled(): Boolean{
+    fun bluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled == true
     }
 
-    private val bluetoothAdapter: BluetoothAdapter? by lazy {
-        val bluetoothManager: BluetoothManager? = activity.getSystemService(BluetoothManager::class.java)
-        bluetoothManager?.adapter
-    }
-
     fun getBondedDevices(): Set<BluetoothDevice>? {
-        return if (activity.checkSelfPermission(android.Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED) {
-            bluetoothAdapter?.bondedDevices
-        } else {
-            null
-        }
+
+        checkAndRequestBluetoothPermission()
+       return bluetoothAdapter?.bondedDevices
+
     }
-
-
 }

@@ -15,7 +15,7 @@
          devices. -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
 
     <application
         android:allowBackup="true"
