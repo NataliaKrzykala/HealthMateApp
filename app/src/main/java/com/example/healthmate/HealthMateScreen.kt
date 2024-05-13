@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.healthmate.R
+import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.data.DataSource
 import com.example.healthmate.ui.AccountScreen
 import com.example.healthmate.ui.HealthMateViewModel
@@ -64,6 +65,7 @@ fun HealthMateAppBar(
     navigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+
     TopAppBar(
         title = { Text(text = stringResource(currentScreen.title), style = MaterialTheme.typography.displayMedium) },
         /*title = { /* Your empty Text composable */ },*/
@@ -94,6 +96,7 @@ fun HealthMateAppBar(
 
 @Composable
 fun HealthMateApp(
+    bluetoothHandler: BluetoothHandler,
     viewModel: HealthMateViewModel = viewModel(),
     navController: NavHostController = rememberNavController()
 ) {
@@ -165,7 +168,8 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.Measure.name) {
                 MeasureScreen(
-                    modifier = Modifier.fillMaxHeight()
+                    modifier = Modifier.fillMaxHeight(),
+                    bluetoothHandler = bluetoothHandler
                 )
             }
             composable(route = HealthMateScreen.Statistics.name) {

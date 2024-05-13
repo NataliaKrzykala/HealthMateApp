@@ -1,6 +1,7 @@
 package com.example.healthmate
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,30 +22,33 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultRegistry
+import androidx.compose.ui.platform.LocalContext
 import com.example.healthmate.ble.BluetoothHandler
+import com.example.healthmate.ui.MeasureScreen
 
 class MainActivity : ComponentActivity() { /*ComponentActivity*/
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
+            val bluetoothHandler = BluetoothHandler(
+                this,
+                activityResultRegistry,
+                onScanResult = ::btScan
+            )
+
+            bluetoothHandler.checkAndRequestBluetoothPermission()
             HealthMateTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ){
-                    HealthMateApp()
+                    HealthMateApp(bluetoothHandler = bluetoothHandler)
+                    //MeasureScreen(bluetoothHandler = bluetoothHandler)
                 }
             }
         }
-        val bluetoothHandler = BluetoothHandler(
-            this,
-            activityResultRegistry,
-            onScanResult = ::btScan
-        )
-
-        bluetoothHandler.checkAndRequestBluetoothPermission()
     }
-
 
     private fun btScan(){
         Toast.makeText(this, R.string.ble_connected_succesfully, Toast.LENGTH_LONG).show()
@@ -54,11 +58,11 @@ class MainActivity : ComponentActivity() { /*ComponentActivity*/
 /**
  * Composable that displays what the UI of the app looks like in light theme in the design tab.
  */
-@Preview
+/*@Preview
 @Composable
 fun HealthMatePreview() {
     HealthMateTheme(darkTheme = false) {
-        HealthMateApp()
+        HealthMateApp(bluetoothHandler = bluetoothHandler)
     }
 }
 
@@ -69,6 +73,6 @@ fun HealthMatePreview() {
 @Composable
 fun HealthMateDarkThemePreview() {
     HealthMateTheme(darkTheme = true) {
-        HealthMateApp()
+        HealthMateApp(bluetoothHandler = bluetoothHandler)
     }
-}
+}*/

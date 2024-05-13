@@ -1,5 +1,6 @@
 package com.example.healthmate.ui
 
+import android.bluetooth.BluetoothDevice
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -32,13 +33,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ui.theme.HealthMateTheme
 import com.example.healthmate.ui.theme.Typography
 
+
 @Composable
 fun MeasureScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bluetoothHandler: BluetoothHandler
 ) {
+    val pairedDevices = bluetoothHandler.getBondedDevices()
+
     val composition by rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(R.raw.anim)
     )
@@ -59,25 +65,53 @@ fun MeasureScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.padding_small))
         ) {
-            LottieAnimation(
-                composition = composition,
-                progress = {
-                    progress
-                }
-            )
-            Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
-            Text(
-                stringResource(R.string.connecting),
-                style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            if(pairedDevices == null) {
+                LottieAnimation(
+                    composition = composition,
+                    progress = {
+                        progress
+                    }
                 )
+                Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
+                Text(
+                    stringResource(R.string.connecting),
+                    style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                )
+            }else{
+                PairedDevicesList(pairedDevices, bluetoothHandler)
+            }
         }
     }
 }
 
-@Preview
 @Composable
-fun MeasureScreenPreview(){
-    HealthMateTheme {
-        MeasureScreen()
+fun PairedDevicesList(
+    pairedDevices: Set<BluetoothDevice>?,
+    bluetoothHandler: BluetoothHandler
+    ) {
+    Column {
+        Text(
+            text = stringResource(R.string.paired_devices),
+            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
+        )
+        pairedDevices?.forEach { device ->
+            // Sprawdzenie uprawnień przed wyświetleniem nazwy urządzenia
+            if (bluetoothHandler.bluetoothEnabled() == true) {
+                Text(device.name ?: "Unknown Device")
+            } else {
+                bluetoothHandler.checkAndRequestBluetoothPermission()
+                // Obsługa braku uprawnień
+                Text("Bluetooth permission not granted")
+            }
+        }
     }
 }
+
+/*@Preview
+@Composable
+fun MeasureScreenPreview(){
+    val bluetoothHandler = BluetoothHandler()
+    HealthMateTheme {
+        MeasureScreen(bluetoothHandler = bluetoothHandler)
+    }
+}*/

@@ -2,8 +2,10 @@ package com.example.healthmate.ble
 
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.result.ActivityResultRegistry
@@ -55,4 +57,23 @@ class BluetoothHandler(
             bluetoothPermissionLauncher.launch(android.Manifest.permission.BLUETOOTH_ADMIN)
         }
     }
+
+    fun bluetoothEnabled(): Boolean{
+        return bluetoothAdapter?.isEnabled == true
+    }
+
+    private val bluetoothAdapter: BluetoothAdapter? by lazy {
+        val bluetoothManager: BluetoothManager? = activity.getSystemService(BluetoothManager::class.java)
+        bluetoothManager?.adapter
+    }
+
+    fun getBondedDevices(): Set<BluetoothDevice>? {
+        return if (activity.checkSelfPermission(android.Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED) {
+            bluetoothAdapter?.bondedDevices
+        } else {
+            null
+        }
+    }
+
+
 }
