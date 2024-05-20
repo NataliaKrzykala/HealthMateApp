@@ -1,7 +1,9 @@
 package com.example.healthmate.ui
 
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattCallback
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -80,6 +82,7 @@ fun PairedDevicesList(
     pairedDevices: Set<BluetoothDevice>?,
     bluetoothHandler: BluetoothHandler
     ) {
+    //val gattCallback = bluetoothHandler.bluetoothGatt
     Column {
         Text(
             text = stringResource(R.string.paired_devices),
@@ -88,7 +91,12 @@ fun PairedDevicesList(
         pairedDevices?.forEach { device ->
             // Sprawdzenie uprawnień przed wyświetleniem nazwy urządzenia
             if (bluetoothHandler.bluetoothEnabled() == true) {
-                Text(device.name ?: "Unknown Device")
+                Text(
+                    text = device.name ?: "Unknown Device",
+                    modifier = Modifier.clickable {
+                        bluetoothHandler.connectToGattServer(device)
+                    }
+                )
             } else {
                 bluetoothHandler.checkAndRequestBluetoothPermission()
                 // Obsługa braku uprawnień

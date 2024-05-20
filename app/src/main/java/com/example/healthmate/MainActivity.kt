@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() { /*ComponentActivity*/
     }
 
     private fun btScan(){
-        Toast.makeText(this, R.string.ble_connected_succesfully, Toast.LENGTH_LONG).show()
+        //Toast.makeText(this, R.string.ble_connected_succesfully, Toast.LENGTH_LONG).show()
     }
 }
 
