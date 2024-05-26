@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Intent
@@ -20,11 +22,13 @@ class BluetoothHandler(
     private val activity: Activity,
     private val activityResultRegistry: ActivityResultRegistry,
     private val onScanResult: () -> Unit,
-    //private val gattCallback: BluetoothGattCallback
 ) {
 
     private var btPermission = false
     private var bluetoothGatt: BluetoothGatt? = null
+
+    private var onServicesDiscovered: ((List<BluetoothGattService>) -> Unit)? = null
+    private var onCharacteristicRead: ((ByteArray) -> Unit)? = null
 
     companion object {
         private const val TAG = "BluetoothHandler"
@@ -76,10 +80,8 @@ class BluetoothHandler(
     }
 
     fun getBondedDevices(): Set<BluetoothDevice>? {
-
         checkAndRequestBluetoothPermission()
-       return bluetoothAdapter?.bondedDevices
-
+        return bluetoothAdapter?.bondedDevices
     }
 
     fun hasBluetoothPermission(): Boolean {
@@ -104,6 +106,44 @@ class BluetoothHandler(
         }
     }
 
+    fun setOnServicesDiscoveredCallback(callback: (List<BluetoothGattService>) -> Unit) {
+        onServicesDiscovered = callback
+    }
+
+    fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
+        bluetoothGatt?.let { gatt ->
+            if (hasBluetoothPermission()) {
+                try {
+                    gatt.readCharacteristic(characteristic)
+                } catch (e: SecurityException) {
+                    Log.e(TAG, "SecurityException: ${e.message}")
+                    // Obsługa braku uprawnień, np. wyświetlenie komunikatu do użytkownika
+                }
+            } else {
+                checkAndRequestBluetoothPermission()
+            }
+        }
+    }
+
+    fun setOnCharacteristicReadCallback(callback: (ByteArray) -> Unit) {
+        onCharacteristicRead = callback
+    }
+
+    fun readDescriptor(descriptor: BluetoothGattDescriptor) {
+        bluetoothGatt?.let { gatt ->
+            if (hasBluetoothPermission()) {
+                try {
+                    gatt.readDescriptor(descriptor)
+                } catch (e: SecurityException) {
+                    Log.e(TAG, "SecurityException: ${e.message}")
+                    // Obsługa braku uprawnień, np. wyświetlenie komunikatu do użytkownika
+                }
+            } else {
+                checkAndRequestBluetoothPermission()
+            }
+        }
+    }
+
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
@@ -125,7 +165,7 @@ class BluetoothHandler(
             super.onServicesDiscovered(gatt, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Services discovered.")
-                // Read characteristics or perform other operations on the services
+                onServicesDiscovered?.invoke(gatt.services)
             } else {
                 Log.w(TAG, "onServicesDiscovered received: $status")
             }
@@ -171,6 +211,7 @@ class BluetoothHandler(
         ) {
             Log.i(TAG, "Characteristic read: ${value.contentToString()}")
             // Process the read data
+            onCharacteristicRead?.invoke(value)
         }
 
         private fun handleCharacteristicChanged(
@@ -181,5 +222,25 @@ class BluetoothHandler(
             Log.i(TAG, "Characteristic changed: ${value.contentToString()}")
             // Process the changed data
         }
+
+        override fun onDescriptorRead(
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                handleDescriptorRead(gatt, descriptor, descriptor.value)
+            }
+        }
+
+        private fun handleDescriptorRead(
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            value: ByteArray
+        ) {
+            Log.i(TAG, "Descriptor read: ${value.contentToString()}")
+            // Process the read data
+        }
     }
 }
+

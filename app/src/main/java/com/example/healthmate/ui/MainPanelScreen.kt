@@ -1,5 +1,6 @@
 package com.example.healthmate.ui
 
+import android.bluetooth.BluetoothDevice
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
