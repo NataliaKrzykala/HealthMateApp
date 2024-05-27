@@ -29,6 +29,7 @@ class BluetoothHandler(
 
     private var onServicesDiscovered: ((List<BluetoothGattService>) -> Unit)? = null
     private var onCharacteristicRead: ((ByteArray) -> Unit)? = null
+    private var onDescriptorRead: ((ByteArray) -> Unit)? = null
 
     companion object {
         private const val TAG = "BluetoothHandler"
@@ -144,6 +145,10 @@ class BluetoothHandler(
         }
     }
 
+    fun setOnDescriptorReadCallback(callback: (ByteArray) -> Unit) {
+        onDescriptorRead = callback
+    }
+
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
@@ -240,6 +245,7 @@ class BluetoothHandler(
         ) {
             Log.i(TAG, "Descriptor read: ${value.contentToString()}")
             // Process the read data
+            onDescriptorRead?.invoke(value)
         }
     }
 }

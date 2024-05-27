@@ -144,6 +144,12 @@ fun BluetoothDetailsScreen(
         receivedData = value.toHexString() //contentToString()
     }
 
+    var receivedDataDescriptor by remember { mutableStateOf("") }
+    bluetoothHandler.setOnDescriptorReadCallback { value ->
+        // Aktualizuj stan, aby wyświetlić otrzymane dane w interfejsie użytkownika
+        receivedDataDescriptor = value.toHexString() //contentToString()
+    }
+
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(16.dp)
@@ -169,7 +175,11 @@ fun BluetoothDetailsScreen(
             }
         }
         Text(
-            text = "Received Data: $receivedData",
+            text = "Received Data Characteristic: $receivedData",
+            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
+        )
+        Text(
+            text = "Received Data Descriptor: $receivedDataDescriptor",
             style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
         )
         Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
