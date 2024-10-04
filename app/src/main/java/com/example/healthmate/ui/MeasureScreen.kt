@@ -2,6 +2,7 @@ package com.example.healthmate.ui
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +29,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -35,19 +38,23 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.healthmate.R
 //import com.example.healthmate.ble.BluetoothDetailsScreen
 import com.example.healthmate.ble.BluetoothHandler
+import com.example.healthmate.ble.BluetoothUUIDs
+import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ui.theme.Typography
+import java.util.Calendar
+import java.util.UUID
 
 
 @Composable
 fun MeasureScreen(
     modifier: Modifier = Modifier,
-    bluetoothHandler: BluetoothHandler
+    bluetoothHandler: BluetoothHandler,
+    bluetoothViewModel: BluetoothViewModel
 ) {
     //val pairedDevices0: Set<BluetoothDevice> = mBtAdapter.getBondedDevices()
     var showDetails by remember { mutableStateOf(false) }
     var services by remember { mutableStateOf<List<BluetoothGattService>>(emptyList()) }
 
-    // Ustaw callback dla odkrytych usług
     bluetoothHandler.setOnServicesDiscoveredCallback { discoveredServices ->
         services = discoveredServices
         showDetails = true
@@ -56,9 +63,10 @@ fun MeasureScreen(
     if (showDetails) {
         BluetoothDetailsScreen(
             services = services,
-            bluetoothHandler = bluetoothHandler
+            bluetoothHandler = bluetoothHandler,
+            bluetoothViewModel = bluetoothViewModel
         ) {
-            showDetails = false // Powrót do listy urządzeń
+            showDetails = false
         }
     } else {
         val pairedDevices = bluetoothHandler.getBondedDevices()
@@ -108,7 +116,6 @@ fun PairedDevicesList(
     pairedDevices: Set<BluetoothDevice>?,
     bluetoothHandler: BluetoothHandler
     ) {
-    //val gattCallback = bluetoothHandler.bluetoothGatt
     Column {
         Text(
             text = stringResource(R.string.paired_devices),
@@ -116,11 +123,12 @@ fun PairedDevicesList(
         )
         pairedDevices?.forEach { device ->
             // Sprawdzenie uprawnień przed wyświetleniem nazwy urządzenia
-            if (bluetoothHandler.bluetoothEnabled() == true) {
+            if (bluetoothHandler.bluetoothEnabled()) {
                 Text(
                     text = device.name ?: "Unknown Device",
                     modifier = Modifier.clickable {
                         bluetoothHandler.connectToGattServer(device)
+                        //bluetoothHandler.connectedDevice = device
                     }
                 )
             } else {
@@ -136,56 +144,91 @@ fun PairedDevicesList(
 fun BluetoothDetailsScreen(
     services: List<BluetoothGattService>,
     bluetoothHandler: BluetoothHandler,
+    bluetoothViewModel: BluetoothViewModel,
     onBack: () -> Unit
 ) {
+
+    val device by bluetoothViewModel.currentDevice.collectAsState()
+    val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
+
+    bluetoothHandler.onCharacteristicChangedCallback = { value ->
+        bluetoothViewModel.updateCharacteristicValue(value)
+    }
+
+    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
+        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
+    }
+
+
+    //val resultTemp: Float? = parseTemperatureFromByte(characteristicValue?.copyOfRange(1, 5))
+    //val resultDate: Calendar? = parseTimestampFromByte(characteristicValue?.copyOfRange(5, 12))
+
     var receivedData by remember { mutableStateOf("") }
     bluetoothHandler.setOnCharacteristicReadCallback { value ->
-        // Aktualizuj stan, aby wyświetlić otrzymane dane w interfejsie użytkownika
-        receivedData = value.toHexString() //contentToString()
+        receivedData = value.toHexString()
     }
 
-    var receivedDataDescriptor by remember { mutableStateOf("") }
+    /*var receivedDataDescriptor by remember { mutableStateOf("") }
     bluetoothHandler.setOnDescriptorReadCallback { value ->
-        // Aktualizuj stan, aby wyświetlić otrzymane dane w interfejsie użytkownika
-        receivedDataDescriptor = value.toHexString() //contentToString()
+        receivedDataDescriptor = value.toHexString()
+    }*/
+
+    //var devName = bluetoothHandler.getConnectedDeviceName()
+
+    if (device != null) {
+        val parsedData = device?.parseData(characteristicValue)
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            device?.getDisplayData()?.forEach { key ->
+                Text(
+                    text = "$key: ${parsedData?.get(key) ?: "No data"}",
+                    style = Typography.bodyMedium
+                )
+            }
+            /*Text(
+                text = "Device name: $devName",
+                style = Typography.bodyMedium
+            )*/
+
+            Button(onClick = { bluetoothHandler.readCharacteristicByUUID(BluetoothUUIDs.UUID_SERVICE_DEVICE_INFO, BluetoothUUIDs.UUID_MANUFACTURER) }) {
+                Text(text = stringResource(R.string.details_of_settings))
+            }
+            Text(
+                text = "Received Data Characteristic: $receivedData",
+                style = Typography.bodyMedium
+            )
+        }
+
+    } else {
+        Text(text = "No device connected")
     }
 
-    Column(modifier = Modifier
+    /*Column(modifier = Modifier
         .fillMaxSize()
         .padding(16.dp)
         .verticalScroll(rememberScrollState())
     ){
         Text(
-            text = "Services",
-            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
-        )
-        services.forEach { service ->
-            Text(text = "Service: ${service.uuid}")
-            service.characteristics.forEach { characteristic ->
-                Text(text = "  Characteristic: ${characteristic.uuid}")
-                Button(onClick = { bluetoothHandler.readCharacteristic(characteristic) }) {
-                    Text(text = "Read Characteristic")
-                }
-                characteristic.descriptors.forEach { descriptor ->
-                    Text(text = "    Descriptor: ${descriptor.uuid}")
-                    Button(onClick = { bluetoothHandler.readDescriptor(descriptor) }) {
-                        Text(text = "Read Descriptor")
-                    }
-                }
-            }
-        }
-        Text(
-            text = "Received Data Characteristic: $receivedData",
+            text = stringResource(R.string.temperature),
             style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
         )
         Text(
-            text = "Received Data Descriptor: $receivedDataDescriptor",
-            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
+            text = "${resultTemp ?: "No data"}", //.toHexString() ?: "No Data" characteristicValue?.contentToString()
+            style = Typography.bodyMedium
         )
+        Text(
+            text = "${resultDate?.time ?: "No data"}", //.toHexString() ?: "No Data" characteristicValue?.contentToString()
+            style = Typography.bodyMedium
+        )
+
+       /* Button(onClick = { bluetoothHandler.readCharacteristic() }) {
+            Text(text = stringResource(R.string.details_of_settings))
+        }*/
+
         Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
             Text(text = "Back")
         }
-    }
+    }*/
 }
 
 fun ByteArray.toHexString(): String = joinToString(separator = " ") { byte -> "%02X".format(byte) }

@@ -19,27 +19,23 @@ import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.UUID
 
-class BluetoothHandler(
+class BtHandlerFullVersion(
     private val activity: Activity,
     private val activityResultRegistry: ActivityResultRegistry,
-    private val onScanResult: () -> Unit
+    private val onScanResult: () -> Unit,
 ) {
 
     private var btPermission = false
     private var bluetoothGatt: BluetoothGatt? = null
 
     private var onServicesDiscovered: ((List<BluetoothGattService>) -> Unit)? = null
-    var onDeviceConnectedCallback: ((BluetoothDev) -> Unit)? = null
     private var onCharacteristicRead: ((ByteArray) -> Unit)? = null
     private var onDescriptorRead: ((ByteArray) -> Unit)? = null
-    var onCharacteristicChangedCallback: ((ByteArray) -> Unit)? = null
-    var connectedDevice: BluetoothDevice? = null
-
+    private var onCharacteristicChanged: ((ByteArray) -> Unit)? = null
 
     companion object {
         private const val TAG = "BluetoothHandler"
     }
-
 
     //region vals
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
@@ -161,13 +157,6 @@ class BluetoothHandler(
     }
     //endregion
 
-    fun getConnectedDeviceName(): String? {
-        if (!hasBluetoothPermission()) {
-            checkAndRequestBluetoothPermission()
-            Log.e("ConnectionManager", "Bluetooth permissions not granted")
-        }
-        return connectedDevice?.name // Zwracamy nazwę urządzenia, jeśli jest połączone
-    }
     fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray) {
         bluetoothGatt?.let { gatt ->
             if (hasBluetoothPermission()) {
@@ -189,6 +178,57 @@ class BluetoothHandler(
         }
     }
 
+    /* fun subscribeToIndications(characteristic: BluetoothGattCharacteristic) {
+         if (!hasBluetoothPermission()) {
+             checkAndRequestBluetoothPermission()
+             return
+         }
+
+         bluetoothGatt?.setCharacteristicNotification(characteristic, true)
+
+         characteristic.descriptors.forEach { descriptor ->
+             if (descriptor.uuid == UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")) {
+                 // Wartość deskryptora do zapisania
+                 val value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+
+                 // Zapisz deskryptor zgodnie z nowymi zasadami
+                 descriptor.setValue(value) // Użyj metody setValue
+                 bluetoothGatt?.writeDescriptor(descriptor) // Użyj metody writeDescriptor
+                 Log.i(TAG, "Subscribed to indications for characteristic: ${characteristic.uuid}")
+             }
+         }
+     }*/
+
+    /* fun setCharacteristicNotification(characteristic: BluetoothGattCharacteristic, enable: Boolean) {
+         bluetoothGatt?.let { gatt ->
+             if (hasBluetoothPermission()) {
+                 try {
+                     gatt.setCharacteristicNotification(characteristic, enable)
+                     val descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+                     descriptor?.let {
+                         // Ustawienie wartości 0x0200 dla Indications lub 0x0100 dla Notifications
+                         val value = if (enable) byteArrayOf(0x02, 0x00) else byteArrayOf(0x00, 0x00)
+                         writeDescriptor(it, value)
+                     }
+                 } catch (e: SecurityException) {
+                     Log.e(TAG, "SecurityException: ${e.message}")
+                 }
+             } else {
+                 checkAndRequestBluetoothPermission()
+             }
+         }
+     }*/
+
+    // Sprawdzanie, czy charakterystyka obsługuje wskazania (indications)
+    /*fun BluetoothGattCharacteristic.isIndicatable(): Boolean {
+        return properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0
+    }
+
+    // Sprawdzanie, czy charakterystyka obsługuje powiadomienia (notifications)
+    fun BluetoothGattCharacteristic.isNotifiable(): Boolean {
+        return properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0
+    }*/
+
     fun BluetoothGattCharacteristic.isIndicatable(): Boolean =
         containsProperty(BluetoothGattCharacteristic.PROPERTY_INDICATE)
 
@@ -205,7 +245,8 @@ class BluetoothHandler(
             Log.e("ConnectionManager", "Bluetooth permissions not granted")
             return
         }
-
+        val CCC_DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+        val cccdUuid = UUID.fromString(CCC_DESCRIPTOR_UUID)
         val payload = when {
             characteristic.isIndicatable() -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
             characteristic.isNotifiable() -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
@@ -215,7 +256,7 @@ class BluetoothHandler(
             }
         }
 
-        characteristic.getDescriptor(BluetoothUUIDs.CCC_DESCRIPTOR_UUID)?.let { cccDescriptor ->
+        characteristic.getDescriptor(cccdUuid)?.let { cccDescriptor ->
             if (bluetoothGatt?.setCharacteristicNotification(characteristic, true) == false) {
                 Log.e("ConnectionManager", "setCharacteristicNotification failed for ${characteristic.uuid}")
                 return
@@ -224,80 +265,9 @@ class BluetoothHandler(
         } ?: Log.e("ConnectionManager", "${characteristic.uuid} doesn't contain the CCC descriptor!")
     }
 
-    private fun handleDeviceConnection(gatt: BluetoothGatt) {
-        val services = gatt.services
-        val deviceType = when {
-            services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> Thermometer()
-            services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> BloodPressureMonitor()
-            else -> null
-        }
-
-        deviceType?.let {
-            onDeviceConnectedCallback?.invoke(it)
-        } ?: run {
-            Log.e(TAG, "Unknown device type")
-        }
-
-        when (deviceType) {
-            is Thermometer -> {
-                val characteristic = gatt.getService(BluetoothUUIDs.UUID_THERMOMETER_SERVICE)
-                    ?.getCharacteristic(BluetoothUUIDs.UUID_THERMOMETER_CHARACTERISTIC)
-                characteristic?.let {
-                    enableNotifications(it)
-                }
-            }
-            is BloodPressureMonitor -> {
-                val characteristic = gatt.getService(BluetoothUUIDs.UUID_BPM_SERVICE)
-                    ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
-                characteristic?.let {
-                    enableNotifications(it) // Włącz powiadomienia dla ciśnieniomierza
-                }
-            }
-            else -> Log.e(TAG, "Unknown device type")
-        }
+    fun setOnCharacteristicChangedCallback(callback: (ByteArray) -> Unit) {
+        onCharacteristicChanged = callback
     }
-
-    /*fun parseMultipleCharacteristics(uuidList: List<UUID>) {
-        // Iterujemy przez każdą UUID
-        uuidList.forEach { uuid ->
-            // Szukamy charakterystyki we wszystkich dostępnych serwisach
-            val characteristic = bluetoothGatt?.services?.flatMap { it.characteristics }?.find { it.uuid == uuid }
-
-            // Odczytaj charakterystykę, jeśli istnieje
-            characteristic?.let {
-                readCharacteristic(it)
-            } ?: Log.e(TAG, "Characteristic not found for UUID: $uuid")
-        }
-    }*/
-
-    fun readCharacteristicByUUID(serviceUUID: UUID, characteristicUUID: UUID) {
-        // Upewnij się, że bluetoothGatt jest połączony
-        if (!hasBluetoothPermission()) {
-            checkAndRequestBluetoothPermission()
-            Log.e("ConnectionManager", "Bluetooth permissions not granted")
-            return
-        }
-
-        if (bluetoothGatt != null) {
-            // Znajdź usługę
-            val service = bluetoothGatt?.getService(serviceUUID)
-            if (service != null) {
-                // Znajdź charakterystykę
-                val characteristic = service.getCharacteristic(characteristicUUID)
-                if (characteristic != null) {
-                    // Odczytaj charakterystykę
-                    bluetoothGatt?.readCharacteristic(characteristic)
-                } else {
-                    Log.e(TAG, "Characteristic not found for UUID: $characteristicUUID")
-                }
-            } else {
-                Log.e(TAG, "Service not found for UUID: $serviceUUID")
-            }
-        } else {
-            Log.e(TAG, "BluetoothGatt is null. Device may not be connected.")
-        }
-    }
-
 
     @OptIn(ExperimentalStdlibApi::class)
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
@@ -321,10 +291,7 @@ class BluetoothHandler(
             super.onServicesDiscovered(gatt, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Services discovered.")
-                onServicesDiscovered?.invoke(gatt.services) //???
-
-                handleDeviceConnection(gatt)
-
+                onServicesDiscovered?.invoke(gatt.services)
             } else {
                 Log.w(TAG, "onServicesDiscovered received: $status")
             }
@@ -337,6 +304,11 @@ class BluetoothHandler(
                 handleCharacteristicRead(gatt, characteristic, characteristic.value)
             }
         }
+
+        /*@Deprecated("Deprecated")
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+            onCharacteristicChanged(gatt, characteristic, characteristic.value)
+        }*/
         //endregion
 
         // API 33+ overrides
@@ -405,7 +377,6 @@ class BluetoothHandler(
         ) {
             with(characteristic) {
                 Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: ${value.toHexString()}")
-                onCharacteristicChangedCallback?.invoke(value)
             }
         }
 
@@ -419,6 +390,25 @@ class BluetoothHandler(
                 Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: $newValueHex")
             }
         }
+
+        /* override fun onCharacteristicChanged(
+             gatt: BluetoothGatt,
+             characteristic: BluetoothGattCharacteristic,
+             value: ByteArray
+         ) {
+             super.onCharacteristicChanged(gatt, characteristic, value)
+             Log.i(TAG, "Characteristic changed: ${value.contentToString()}")
+             onCharacteristicChanged?.invoke(value) // Przekazanie wartości do UI
+         }
+
+         private fun handleCharacteristicChanged(
+             gatt: BluetoothGatt,
+             characteristic: BluetoothGattCharacteristic,
+             value: ByteArray
+         ) {
+             Log.i(TAG, "Characteristic changed: ${value.contentToString()}")
+             // Process the changed data
+         }*/
     }
 }
 

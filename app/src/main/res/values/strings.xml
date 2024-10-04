@@ -38,4 +38,9 @@
     <string name="ble_connected_succesfully">Połączono z Bluetooth Low Energy</string>
     <string name="paired_devices">Sparowane urządzenia</string>
 
+    <string name="temperature">Temperatura</string>
+    <string name="time_of_measurement">Czas pomiaru</string>
+    <string name="thermometer">Termometr</string>
+    <string name="details_of_settings">Szcegóły ustawień</string>
+
 </resources>

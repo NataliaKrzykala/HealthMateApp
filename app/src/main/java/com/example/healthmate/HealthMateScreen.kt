@@ -30,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.healthmate.R
 import com.example.healthmate.ble.BluetoothHandler
+import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.data.DataSource
 import com.example.healthmate.ui.AccountScreen
 import com.example.healthmate.ui.HealthMateViewModel
@@ -98,6 +99,7 @@ fun HealthMateAppBar(
 fun HealthMateApp(
     bluetoothHandler: BluetoothHandler,
     viewModel: HealthMateViewModel = viewModel(),
+    bluetoothViewModel: BluetoothViewModel,
     navController: NavHostController = rememberNavController()
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -169,7 +171,8 @@ fun HealthMateApp(
             composable(route = HealthMateScreen.Measure.name) {
                 MeasureScreen(
                     modifier = Modifier.fillMaxHeight(),
-                    bluetoothHandler = bluetoothHandler
+                    bluetoothHandler = bluetoothHandler,
+                    bluetoothViewModel = bluetoothViewModel
                 )
             }
             composable(route = HealthMateScreen.Statistics.name) {

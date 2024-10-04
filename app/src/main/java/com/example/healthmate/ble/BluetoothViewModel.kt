@@ -5,20 +5,24 @@ import android.bluetooth.BluetoothGattService
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class BluetoothViewModel(
-    private val bluetoothHandler: BluetoothHandler
+bluetoothHandler: BluetoothHandler
 ) : ViewModel() {
-    private val _services = MutableLiveData<List<BluetoothGattService>>()
-    val services: LiveData<List<BluetoothGattService>> = _services
 
-    init {
-        bluetoothHandler.setOnServicesDiscoveredCallback { discoveredServices ->
-            _services.postValue(discoveredServices)
-        }
+    private val _currentDevice = MutableStateFlow<BluetoothDev?>(null)
+    val currentDevice: StateFlow<BluetoothDev?> = _currentDevice.asStateFlow()
+
+    private val _characteristicValue = MutableStateFlow<ByteArray?>(null)
+    val characteristicValue: StateFlow<ByteArray?> = _characteristicValue.asStateFlow()
+
+    fun setCurrentDevice(device: BluetoothDev) {
+        _currentDevice.value = device
     }
-
-    fun connectToDevice(device: BluetoothDevice) {
-        bluetoothHandler.connectToGattServer(device)
+    fun updateCharacteristicValue(value: ByteArray) {
+        _characteristicValue.value = value
     }
 }

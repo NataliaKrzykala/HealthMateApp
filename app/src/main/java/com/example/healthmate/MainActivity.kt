@@ -24,7 +24,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultRegistry
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.healthmate.ble.BluetoothHandler
+import com.example.healthmate.ble.BluetoothViewModel
+import com.example.healthmate.ble.BluetoothViewModelFactory
 import com.example.healthmate.ui.MeasureScreen
 
 class MainActivity : ComponentActivity() { /*ComponentActivity*/
@@ -32,18 +36,24 @@ class MainActivity : ComponentActivity() { /*ComponentActivity*/
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
+
             val bluetoothHandler = BluetoothHandler(
                 this,
                 activityResultRegistry,
                 onScanResult = ::btScan
             )
 
+            val bluetoothViewModelFactory = BluetoothViewModelFactory(bluetoothHandler)
+            val bluetoothViewModel: BluetoothViewModel = ViewModelProvider(this, bluetoothViewModelFactory)
+                .get(BluetoothViewModel::class.java)
+
             bluetoothHandler.checkAndRequestBluetoothPermission()
+
             HealthMateTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ){
-                    HealthMateApp(bluetoothHandler = bluetoothHandler)
+                    HealthMateApp(bluetoothHandler = bluetoothHandler, bluetoothViewModel = bluetoothViewModel)
                     //MeasureScreen(bluetoothHandler = bluetoothHandler)
                 }
             }
