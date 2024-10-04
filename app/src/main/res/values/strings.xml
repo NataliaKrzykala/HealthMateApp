@@ -43,4 +43,8 @@
     <string name="thermometer">Termometr</string>
     <string name="details_of_settings">Szcegóły ustawień</string>
 
+    <string name="expand_button_content_description">Zobacz szczegóły</string>
+    <string name="manufacturer">Producent</string>
+    <string name="device_model">Model urządzenia</string>
+    <string name="battery_level">Poziom naładowania baterii</string>
 </resources>

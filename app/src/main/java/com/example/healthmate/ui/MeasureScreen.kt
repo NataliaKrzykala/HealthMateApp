@@ -4,10 +4,12 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +17,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,12 +44,10 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.healthmate.R
-//import com.example.healthmate.ble.BluetoothDetailsScreen
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ui.theme.Typography
-import java.util.Calendar
 import java.util.UUID
 
 
@@ -51,7 +57,6 @@ fun MeasureScreen(
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel
 ) {
-    //val pairedDevices0: Set<BluetoothDevice> = mBtAdapter.getBondedDevices()
     var showDetails by remember { mutableStateOf(false) }
     var services by remember { mutableStateOf<List<BluetoothGattService>>(emptyList()) }
 
@@ -159,76 +164,126 @@ fun BluetoothDetailsScreen(
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
-
-    //val resultTemp: Float? = parseTemperatureFromByte(characteristicValue?.copyOfRange(1, 5))
-    //val resultDate: Calendar? = parseTimestampFromByte(characteristicValue?.copyOfRange(5, 12))
-
-    var receivedData by remember { mutableStateOf("") }
-    bluetoothHandler.setOnCharacteristicReadCallback { value ->
-        receivedData = value.toHexString()
-    }
-
-    /*var receivedDataDescriptor by remember { mutableStateOf("") }
-    bluetoothHandler.setOnDescriptorReadCallback { value ->
-        receivedDataDescriptor = value.toHexString()
-    }*/
-
-    //var devName = bluetoothHandler.getConnectedDeviceName()
+    var devName = bluetoothHandler.getConnectedDeviceName()
 
     if (device != null) {
         val parsedData = device?.parseData(characteristicValue)
 
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Device name: $devName",
+                style = Typography.bodyMedium
+            )
+
             device?.getDisplayData()?.forEach { key ->
                 Text(
                     text = "$key: ${parsedData?.get(key) ?: "No data"}",
                     style = Typography.bodyMedium
                 )
             }
-            /*Text(
-                text = "Device name: $devName",
-                style = Typography.bodyMedium
-            )*/
 
-            Button(onClick = { bluetoothHandler.readCharacteristicByUUID(BluetoothUUIDs.UUID_SERVICE_DEVICE_INFO, BluetoothUUIDs.UUID_MANUFACTURER) }) {
-                Text(text = stringResource(R.string.details_of_settings))
-            }
-            Text(
-                text = "Received Data Characteristic: $receivedData",
-                style = Typography.bodyMedium
+            CharacteristicRead(
+                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+                name = stringResource(R.string.manufacturer),
+                bluetoothHandler = bluetoothHandler,
+                serviceUuid = BluetoothUUIDs.UUID_SERVICE_DEVICE_INFO,
+                characteristicUuid = BluetoothUUIDs.UUID_MANUFACTURER
+            )
+            CharacteristicRead(
+                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+                name = stringResource(R.string.device_model),
+                bluetoothHandler = bluetoothHandler,
+                serviceUuid = BluetoothUUIDs.UUID_SERVICE_DEVICE_INFO,
+                characteristicUuid = BluetoothUUIDs.UUID_MODEL_NUMBER
+            )
+            CharacteristicRead(
+                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+                name = stringResource(R.string.battery_level),
+                bluetoothHandler = bluetoothHandler,
+                serviceUuid = BluetoothUUIDs.UUID_SERVICE_BATTERY,
+                characteristicUuid = BluetoothUUIDs.UUID_BATTERY_LEVEL
             )
         }
 
     } else {
         Text(text = "No device connected")
     }
+}
 
-    /*Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
-        .verticalScroll(rememberScrollState())
-    ){
-        Text(
-            text = stringResource(R.string.temperature),
-            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
-        )
-        Text(
-            text = "${resultTemp ?: "No data"}", //.toHexString() ?: "No Data" characteristicValue?.contentToString()
-            style = Typography.bodyMedium
-        )
-        Text(
-            text = "${resultDate?.time ?: "No data"}", //.toHexString() ?: "No Data" characteristicValue?.contentToString()
-            style = Typography.bodyMedium
-        )
+@Composable
+fun CharacteristicRead(
+    name: String,
+    modifier: Modifier = Modifier,
+    serviceUuid: UUID,
+    characteristicUuid: UUID,
+    bluetoothHandler: BluetoothHandler,
+) {
+    var expanded by remember { mutableStateOf(false) }
 
-       /* Button(onClick = { bluetoothHandler.readCharacteristic() }) {
-            Text(text = stringResource(R.string.details_of_settings))
-        }*/
+    // Mapa do przechowywania wartości odczytanych dla różnych charakterystyk
+    var receivedDataMap by remember { mutableStateOf(mapOf<UUID, String>()) }
 
-        Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
-            Text(text = "Back")
-        }
+    // Callback do odczytu wartości i zapisania jej w mapie
+    bluetoothHandler.setOnCharacteristicReadCallback { uuid, value ->
+        receivedDataMap = receivedDataMap + (uuid to value.toHexString())
+    }
+
+    /*var receivedData by remember { mutableStateOf("") }
+    bluetoothHandler.setOnCharacteristicReadCallback { value ->
+        receivedData = value.toHexString()
     }*/
+
+    Card(
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(dimensionResource(R.dimen.padding_small))
+            ) {
+                Text(text = name)
+                Spacer(Modifier.weight(1f))
+                CharacteristicReadMoreButton(
+                    expanded = expanded,
+                    onClick = { expanded = !expanded },
+                )
+            }
+            if (expanded) {
+                bluetoothHandler.readCharacteristicByUUID(serviceUuid, characteristicUuid)
+                Text(
+                    text = receivedDataMap[characteristicUuid] ?: "No data",
+                    style = Typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CharacteristicReadMoreButton(
+    expanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = stringResource(R.string.expand_button_content_description),
+            //tint = MaterialTheme.colorScheme.secondary
+        )
+    }
 }
 
 fun ByteArray.toHexString(): String = joinToString(separator = " ") { byte -> "%02X".format(byte) }

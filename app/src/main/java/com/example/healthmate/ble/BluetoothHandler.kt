@@ -25,23 +25,24 @@ class BluetoothHandler(
     private val onScanResult: () -> Unit
 ) {
 
+    //region Variables
     private var btPermission = false
     private var bluetoothGatt: BluetoothGatt? = null
 
     private var onServicesDiscovered: ((List<BluetoothGattService>) -> Unit)? = null
-    var onDeviceConnectedCallback: ((BluetoothDev) -> Unit)? = null
-    private var onCharacteristicRead: ((ByteArray) -> Unit)? = null
-    private var onDescriptorRead: ((ByteArray) -> Unit)? = null
-    var onCharacteristicChangedCallback: ((ByteArray) -> Unit)? = null
     var connectedDevice: BluetoothDevice? = null
+    var onDeviceConnectedCallback: ((BluetoothDev) -> Unit)? = null
 
+    private var onDescriptorRead: ((ByteArray) -> Unit)? = null
+    private var onCharacteristicRead: ((UUID, ByteArray) -> Unit)? = null
+    var onCharacteristicChangedCallback: ((ByteArray) -> Unit)? = null
 
     companion object {
         private const val TAG = "BluetoothHandler"
     }
+    //endregion
 
-
-    //region vals
+    //region Values
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         val bluetoothManager: BluetoothManager? = activity.getSystemService(BluetoothManager::class.java)
         bluetoothManager?.adapter
@@ -76,7 +77,15 @@ class BluetoothHandler(
         }
     //endregion
 
-    //region connect & permission functions
+    //region Connect & permission functions
+    fun hasBluetoothPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
     fun checkAndRequestBluetoothPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
@@ -87,19 +96,6 @@ class BluetoothHandler(
 
     fun bluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled == true
-    }
-
-    fun getBondedDevices(): Set<BluetoothDevice>? {
-        checkAndRequestBluetoothPermission()
-        return bluetoothAdapter?.bondedDevices
-    }
-
-    fun hasBluetoothPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        } else {
-            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
-        }
     }
 
     fun connectToGattServer(device: BluetoothDevice) {
@@ -121,7 +117,7 @@ class BluetoothHandler(
     }
     //endregion
 
-    //region read functions
+    //region Read characteristic & descriptor functions - not used currently
     fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
         bluetoothGatt?.let { gatt ->
             if (hasBluetoothPermission()) {
@@ -137,7 +133,7 @@ class BluetoothHandler(
         }
     }
 
-    fun setOnCharacteristicReadCallback(callback: (ByteArray) -> Unit) {
+    fun setOnCharacteristicReadCallback(callback: (UUID, ByteArray) -> Unit) {
         onCharacteristicRead = callback
     }
 
@@ -161,6 +157,11 @@ class BluetoothHandler(
     }
     //endregion
 
+    //region Get functions
+    fun getBondedDevices(): Set<BluetoothDevice>? {
+        checkAndRequestBluetoothPermission()
+        return bluetoothAdapter?.bondedDevices
+    }
     fun getConnectedDeviceName(): String? {
         if (!hasBluetoothPermission()) {
             checkAndRequestBluetoothPermission()
@@ -168,6 +169,9 @@ class BluetoothHandler(
         }
         return connectedDevice?.name // Zwracamy nazwę urządzenia, jeśli jest połączone
     }
+    //endregion
+
+    //region Enable indication functions (write descriptor, enable indication/notifications)
     fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray) {
         bluetoothGatt?.let { gatt ->
             if (hasBluetoothPermission()) {
@@ -223,7 +227,9 @@ class BluetoothHandler(
             writeDescriptor(cccDescriptor, payload)
         } ?: Log.e("ConnectionManager", "${characteristic.uuid} doesn't contain the CCC descriptor!")
     }
+    //endregion
 
+    //region Handle device type function
     private fun handleDeviceConnection(gatt: BluetoothGatt) {
         val services = gatt.services
         val deviceType = when {
@@ -256,20 +262,9 @@ class BluetoothHandler(
             else -> Log.e(TAG, "Unknown device type")
         }
     }
+    //endregion
 
-    /*fun parseMultipleCharacteristics(uuidList: List<UUID>) {
-        // Iterujemy przez każdą UUID
-        uuidList.forEach { uuid ->
-            // Szukamy charakterystyki we wszystkich dostępnych serwisach
-            val characteristic = bluetoothGatt?.services?.flatMap { it.characteristics }?.find { it.uuid == uuid }
-
-            // Odczytaj charakterystykę, jeśli istnieje
-            characteristic?.let {
-                readCharacteristic(it)
-            } ?: Log.e(TAG, "Characteristic not found for UUID: $uuid")
-        }
-    }*/
-
+    //region Read characteristic by UUID function
     fun readCharacteristicByUUID(serviceUUID: UUID, characteristicUUID: UUID) {
         // Upewnij się, że bluetoothGatt jest połączony
         if (!hasBluetoothPermission()) {
@@ -297,9 +292,8 @@ class BluetoothHandler(
             Log.e(TAG, "BluetoothGatt is null. Device may not be connected.")
         }
     }
+    //endregion
 
-
-    @OptIn(ExperimentalStdlibApi::class)
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
@@ -330,18 +324,20 @@ class BluetoothHandler(
             }
         }
 
-        //region deprecated functions ?
+        //region Deprecated functions ? needed?
         @Deprecated("Deprecated")
         override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 handleCharacteristicRead(gatt, characteristic, characteristic.value)
             }
         }
+
+        //onDescriptorRead?, onCharacteristicChanged?,
         //endregion
 
         // API 33+ overrides
 
-        //region read functions
+        //region Read functions
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
@@ -360,7 +356,7 @@ class BluetoothHandler(
         ) {
             Log.i(TAG, "Characteristic read: ${value.contentToString()}")
             // Process the read data
-            onCharacteristicRead?.invoke(value)
+            onCharacteristicRead?.invoke(characteristic.uuid, value)
         }
 
         override fun onDescriptorRead(
@@ -384,6 +380,7 @@ class BluetoothHandler(
         }
         //endregion
 
+        //region Write functions
         override fun onDescriptorWrite(
             gatt: BluetoothGatt,
             descriptor: BluetoothGattDescriptor,
@@ -396,6 +393,9 @@ class BluetoothHandler(
                 Log.e(TAG, "Descriptor write failed: ${descriptor.uuid}, status: $status")
             }
         }
+        //endregion
+
+        //region "Subscribe" to characteristic value functions
 
         @Deprecated("Deprecated for Android 13+")
         @Suppress("DEPRECATION")
@@ -404,7 +404,7 @@ class BluetoothHandler(
             characteristic: BluetoothGattCharacteristic
         ) {
             with(characteristic) {
-                Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: ${value.toHexString()}")
+                Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: ${value}")
                 onCharacteristicChangedCallback?.invoke(value)
             }
         }
@@ -414,11 +414,11 @@ class BluetoothHandler(
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            val newValueHex = value.toHexString()
             with(characteristic) {
-                Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: $newValueHex")
+                Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: $value")
             }
         }
+        //endregion
     }
 }
 
