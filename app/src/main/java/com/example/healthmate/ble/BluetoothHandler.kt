@@ -18,6 +18,8 @@ import android.util.Log
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.UUID
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class BluetoothHandler(
     private val activity: Activity,
@@ -293,6 +295,41 @@ class BluetoothHandler(
         }
     }
     //endregion
+
+    @OptIn(ExperimentalStdlibApi::class)
+    suspend fun readCharacteristicValue(serviceUUID: UUID, characteristicUUID: UUID): String? {
+        return suspendCoroutine { continuation ->
+            setOnCharacteristicReadCallback { uuid, value ->
+                if (uuid == characteristicUUID) {
+                    continuation.resume(value.toHexString())
+                }
+            }
+            readCharacteristicByUUID(serviceUUID, characteristicUUID)
+        }
+    }
+
+    suspend fun readAllCharacteristics(
+        services: List<BluetoothGattService>
+    ): Map<UUID, String> {
+        val characteristicValues = mutableMapOf<UUID, String>()
+
+        for (service in services) {
+            for (characteristic in service.characteristics) {
+                if (hasBluetoothPermission()) {
+                    val value = readCharacteristicValue(service.uuid, characteristic.uuid)
+                    value?.let {
+                        characteristicValues[characteristic.uuid] = it
+                    }
+                }
+            }
+        }
+        return characteristicValues
+    }
+
+    fun getServices(): List<BluetoothGattService> {
+        return bluetoothGatt?.services ?: emptyList()
+    }
+
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {

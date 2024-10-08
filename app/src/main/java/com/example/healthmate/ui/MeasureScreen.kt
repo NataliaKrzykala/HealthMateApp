@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -164,6 +165,17 @@ fun BluetoothDetailsScreen(
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
+    LaunchedEffect(Unit) {
+        val services = bluetoothHandler.getServices()
+        if (services.isNotEmpty()) {
+            val values = bluetoothHandler.readAllCharacteristics(services)
+            bluetoothViewModel.updateCharacteristicValues(values)
+        }
+    }
+
+    val characteristicValues by bluetoothViewModel.characteristicValues.collectAsState()
+
+
     var devName = bluetoothHandler.getConnectedDeviceName()
 
     if (device != null) {
@@ -185,23 +197,17 @@ fun BluetoothDetailsScreen(
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.manufacturer),
-                bluetoothHandler = bluetoothHandler,
-                serviceUuid = BluetoothUUIDs.UUID_SERVICE_DEVICE_INFO,
-                characteristicUuid = BluetoothUUIDs.UUID_MANUFACTURER
+                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER] ?: "No data"
             )
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.device_model),
-                bluetoothHandler = bluetoothHandler,
-                serviceUuid = BluetoothUUIDs.UUID_SERVICE_DEVICE_INFO,
-                characteristicUuid = BluetoothUUIDs.UUID_MODEL_NUMBER
+                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER] ?: "No data"
             )
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.battery_level),
-                bluetoothHandler = bluetoothHandler,
-                serviceUuid = BluetoothUUIDs.UUID_SERVICE_BATTERY,
-                characteristicUuid = BluetoothUUIDs.UUID_BATTERY_LEVEL
+                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL] ?: "No data"
             )
         }
 
@@ -214,19 +220,12 @@ fun BluetoothDetailsScreen(
 fun CharacteristicRead(
     name: String,
     modifier: Modifier = Modifier,
-    serviceUuid: UUID,
-    characteristicUuid: UUID,
-    bluetoothHandler: BluetoothHandler,
+    value: String,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     // Mapa do przechowywania wartości odczytanych dla różnych charakterystyk
-    var receivedDataMap by remember { mutableStateOf(mapOf<UUID, String>()) }
-
-    // Callback do odczytu wartości i zapisania jej w mapie
-    bluetoothHandler.setOnCharacteristicReadCallback { uuid, value ->
-        receivedDataMap = receivedDataMap + (uuid to value.toHexString())
-    }
+    //var receivedDataMap by remember { mutableStateOf(mapOf<UUID, String>()) }
 
     /*var receivedData by remember { mutableStateOf("") }
     bluetoothHandler.setOnCharacteristicReadCallback { value ->
@@ -258,9 +257,8 @@ fun CharacteristicRead(
                 )
             }
             if (expanded) {
-                bluetoothHandler.readCharacteristicByUUID(serviceUuid, characteristicUuid)
                 Text(
-                    text = receivedDataMap[characteristicUuid] ?: "No data",
+                    text = value,
                     style = Typography.bodyMedium
                 )
             }
