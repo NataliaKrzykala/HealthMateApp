@@ -130,13 +130,15 @@ fun PairedDevicesList(
         pairedDevices?.forEach { device ->
             // Sprawdzenie uprawnień przed wyświetleniem nazwy urządzenia
             if (bluetoothHandler.bluetoothEnabled()) {
-                Text(
-                    text = device.name ?: "Unknown Device",
-                    modifier = Modifier.clickable {
-                        bluetoothHandler.connectToGattServer(device)
-                        //bluetoothHandler.connectedDevice = device
-                    }
-                )
+                if (device.name == "nRF Connect" || device.name == "A&D_UT201BLEA_90F83") {
+                    Text(
+                        text = device.name ?: "Unknown Device",
+                        modifier = Modifier.clickable {
+                            bluetoothHandler.connectToGattServer(device)
+                            //bluetoothHandler.connectedDevice = device
+                        }
+                    )
+                }
             } else {
                 bluetoothHandler.checkAndRequestBluetoothPermission()
                 // Obsługa braku uprawnień
@@ -153,18 +155,6 @@ fun BluetoothDetailsScreen(
     bluetoothViewModel: BluetoothViewModel,
     onBack: () -> Unit
 ) {
-
-    val device by bluetoothViewModel.currentDevice.collectAsState()
-    val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
-
-    bluetoothHandler.onCharacteristicChangedCallback = { value ->
-        bluetoothViewModel.updateCharacteristicValue(value)
-    }
-
-    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
-        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
-    }
-
     LaunchedEffect(Unit) {
         val services = bluetoothHandler.getServices()
         if (services.isNotEmpty()) {
@@ -174,7 +164,16 @@ fun BluetoothDetailsScreen(
     }
 
     val characteristicValues by bluetoothViewModel.characteristicValues.collectAsState()
+    val device by bluetoothViewModel.currentDevice.collectAsState()
+    val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
 
+    bluetoothHandler.onCharacteristicChangedCallback = { value ->
+        bluetoothViewModel.updateCharacteristicValue(value) // Odebranie wartości indicate
+    }
+
+    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
+        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
+    }
 
     var devName = bluetoothHandler.getConnectedDeviceName()
 
@@ -224,14 +223,6 @@ fun CharacteristicRead(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // Mapa do przechowywania wartości odczytanych dla różnych charakterystyk
-    //var receivedDataMap by remember { mutableStateOf(mapOf<UUID, String>()) }
-
-    /*var receivedData by remember { mutableStateOf("") }
-    bluetoothHandler.setOnCharacteristicReadCallback { value ->
-        receivedData = value.toHexString()
-    }*/
-
     Card(
         modifier = modifier
     ) {
@@ -257,10 +248,17 @@ fun CharacteristicRead(
                 )
             }
             if (expanded) {
-                Text(
-                    text = value,
-                    style = Typography.bodyMedium
-                )
+                if(value.length > 2){
+                    Text(
+                        text = value, //hexToString(value)
+                        style = Typography.bodyMedium
+                    )
+                } else {
+                   Text(
+                        text = value, //.hex
+                        style = Typography.bodyMedium
+                    )
+                }
             }
         }
     }
@@ -285,6 +283,21 @@ private fun CharacteristicReadMoreButton(
 }
 
 fun ByteArray.toHexString(): String = joinToString(separator = " ") { byte -> "%02X".format(byte) }
+
+fun hexToString(hex: String): String {
+    val output = StringBuilder("")
+
+    // Przechodzimy przez hex parami (każde dwie cyfry reprezentują jeden znak)
+    for (i in hex.indices step 2) {
+        val str = hex.substring(i, i + 2)
+        // Konwersja z hex do wartości liczbowej, a następnie na znak
+        val char = str.toInt(16).toChar()
+        output.append(char)
+    }
+
+    return output.toString()
+}
+
 
 /*@Preview
 @Composable

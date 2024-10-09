@@ -258,7 +258,7 @@ class BluetoothHandler(
                 val characteristic = gatt.getService(BluetoothUUIDs.UUID_BPM_SERVICE)
                     ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
                 characteristic?.let {
-                    enableNotifications(it) // Włącz powiadomienia dla ciśnieniomierza
+                    enableNotifications(it) // Włącz powiadomienia
                 }
             }
             else -> Log.e(TAG, "Unknown device type")
@@ -312,14 +312,24 @@ class BluetoothHandler(
         services: List<BluetoothGattService>
     ): Map<UUID, String> {
         val characteristicValues = mutableMapOf<UUID, String>()
+        val excludedUuid = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB") // UUID 2A1C
 
         for (service in services) {
+            Log.d("Bluetooth", "Service UUID: ${service.uuid}")
             for (characteristic in service.characteristics) {
+                if (characteristic.uuid == excludedUuid) {
+                    Log.d("Bluetooth", "Skipping characteristic UUID: ${characteristic.uuid}")
+                    continue // Pomijanie charakterystyki o UUID 2A1C
+                }
+                Log.d("Bluetooth", "Reading Characteristic UUID: ${characteristic.uuid}")
                 if (hasBluetoothPermission()) {
                     val value = readCharacteristicValue(service.uuid, characteristic.uuid)
                     value?.let {
+                        Log.d("Bluetooth", "Characteristic UUID: ${characteristic.uuid} Value: $it")
                         characteristicValues[characteristic.uuid] = it
-                    }
+                    } ?: Log.e("Bluetooth", "Failed to read characteristic: ${characteristic.uuid}")
+                } else {
+                    Log.e("Bluetooth", "Bluetooth permissions not granted.")
                 }
             }
         }
@@ -329,7 +339,6 @@ class BluetoothHandler(
     fun getServices(): List<BluetoothGattService> {
         return bluetoothGatt?.services ?: emptyList()
     }
-
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
