@@ -35,6 +35,8 @@ class BluetoothHandler(
     var connectedDevice: BluetoothDevice? = null
     var onDeviceConnectedCallback: ((BluetoothDev) -> Unit)? = null
 
+    //var onDeviceTypeDetermined: ((BluetoothDev?) -> Unit)? = null
+
     private var onDescriptorRead: ((ByteArray) -> Unit)? = null
     private var onCharacteristicRead: ((UUID, ByteArray) -> Unit)? = null
     var onCharacteristicChangedCallback: ((ByteArray) -> Unit)? = null
@@ -240,6 +242,46 @@ class BluetoothHandler(
             else -> null
         }
 
+        // Zgłoś typ urządzenia poprzez callback
+        deviceType?.let {
+            onDeviceConnectedCallback?.invoke(it)
+        } ?: run {
+            Log.e(TAG, "Unknown device type")
+            //onDeviceConnectedCallback?.invoke(null)  // Przekaż null, jeśli nieznany typ
+        }
+    }
+
+    fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
+        when (deviceType) {
+            is Thermometer -> {
+                val characteristic = services
+                    .find { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE }
+                    ?.getCharacteristic(BluetoothUUIDs.UUID_THERMOMETER_CHARACTERISTIC)
+                characteristic?.let {
+                    enableNotifications(it) // Włącz powiadomienia dla termometru
+                }
+            }
+            is BloodPressureMonitor -> {
+                val characteristic = services
+                    .find { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE }
+                    ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
+                characteristic?.let {
+                    enableNotifications(it) // Włącz powiadomienia dla monitora ciśnienia
+                }
+            }
+            else -> Log.e(TAG, "Unknown or unsupported device type")
+        }
+    }
+
+
+    /*private fun handleDeviceConnection(gatt: BluetoothGatt) {
+        val services = gatt.services
+        val deviceType = when {
+            services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> Thermometer()
+            services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> BloodPressureMonitor()
+            else -> null
+        }
+
         deviceType?.let {
             onDeviceConnectedCallback?.invoke(it)
         } ?: run {
@@ -263,7 +305,7 @@ class BluetoothHandler(
             }
             else -> Log.e(TAG, "Unknown device type")
         }
-    }
+    }*/
     //endregion
 
     //region Read characteristic by UUID function
