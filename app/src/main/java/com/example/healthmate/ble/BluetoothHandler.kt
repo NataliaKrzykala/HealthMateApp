@@ -48,7 +48,8 @@ class BluetoothHandler(
 
     //region Values
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
-        val bluetoothManager: BluetoothManager? = activity.getSystemService(BluetoothManager::class.java)
+        val bluetoothManager: BluetoothManager? =
+            activity.getSystemService(BluetoothManager::class.java)
         bluetoothManager?.adapter
     }
 
@@ -166,6 +167,7 @@ class BluetoothHandler(
         checkAndRequestBluetoothPermission()
         return bluetoothAdapter?.bondedDevices
     }
+
     fun getConnectedDeviceName(): String? {
         if (!hasBluetoothPermission()) {
             checkAndRequestBluetoothPermission()
@@ -218,18 +220,27 @@ class BluetoothHandler(
             characteristic.isIndicatable() -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
             characteristic.isNotifiable() -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
             else -> {
-                Log.e("ConnectionManager", "${characteristic.uuid} doesn't support notifications/indications")
+                Log.e(
+                    "ConnectionManager",
+                    "${characteristic.uuid} doesn't support notifications/indications"
+                )
                 return
             }
         }
 
         characteristic.getDescriptor(BluetoothUUIDs.CCC_DESCRIPTOR_UUID)?.let { cccDescriptor ->
             if (bluetoothGatt?.setCharacteristicNotification(characteristic, true) == false) {
-                Log.e("ConnectionManager", "setCharacteristicNotification failed for ${characteristic.uuid}")
+                Log.e(
+                    "ConnectionManager",
+                    "setCharacteristicNotification failed for ${characteristic.uuid}"
+                )
                 return
             }
             writeDescriptor(cccDescriptor, payload)
-        } ?: Log.e("ConnectionManager", "${characteristic.uuid} doesn't contain the CCC descriptor!")
+        } ?: Log.e(
+            "ConnectionManager",
+            "${characteristic.uuid} doesn't contain the CCC descriptor!"
+        )
     }
     //endregion
 
@@ -261,6 +272,7 @@ class BluetoothHandler(
                     enableNotifications(it) // Włącz powiadomienia dla termometru
                 }
             }
+
             is BloodPressureMonitor -> {
                 val characteristic = services
                     .find { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE }
@@ -269,6 +281,7 @@ class BluetoothHandler(
                     enableNotifications(it) // Włącz powiadomienia dla monitora ciśnienia
                 }
             }
+
             else -> Log.e(TAG, "Unknown or unsupported device type")
         }
     }
@@ -351,32 +364,33 @@ class BluetoothHandler(
     }
 
     suspend fun readAllCharacteristics(
-        services: List<BluetoothGattService>
+        services: List<BluetoothGattService>,
+        serviceAndCharacteristicUUIDs: List<Pair<UUID, UUID>>
     ): Map<UUID, String> {
         val characteristicValues = mutableMapOf<UUID, String>()
-        val excludedUuid = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB") // UUID 2A1C
-
-        for (service in services) {
-            Log.d("Bluetooth", "Service UUID: ${service.uuid}")
-            for (characteristic in service.characteristics) {
-                if (characteristic.uuid == excludedUuid) {
-                    Log.d("Bluetooth", "Skipping characteristic UUID: ${characteristic.uuid}")
-                    continue // Pomijanie charakterystyki o UUID 2A1C
-                }
-                Log.d("Bluetooth", "Reading Characteristic UUID: ${characteristic.uuid}")
-                if (hasBluetoothPermission()) {
+        for ((serviceUUID, characteristicUUID) in serviceAndCharacteristicUUIDs) {
+            // Znajdź usługę na podstawie UUID
+            val service = services.find { it.uuid == serviceUUID }
+            if (service != null) {
+                // Znajdź charakterystykę na podstawie UUID
+                val characteristic = service.getCharacteristic(characteristicUUID)
+                if (characteristic != null) {
+                    Log.d("Bluetooth", "Reading Characteristic UUID: ${characteristic.uuid}")
                     val value = readCharacteristicValue(service.uuid, characteristic.uuid)
                     value?.let {
                         Log.d("Bluetooth", "Characteristic UUID: ${characteristic.uuid} Value: $it")
                         characteristicValues[characteristic.uuid] = it
                     } ?: Log.e("Bluetooth", "Failed to read characteristic: ${characteristic.uuid}")
                 } else {
-                    Log.e("Bluetooth", "Bluetooth permissions not granted.")
+                    Log.e(TAG, "Characteristic $characteristicUUID not found in service $serviceUUID")
                 }
+            } else {
+                Log.e(TAG, "Service $serviceUUID not found.")
             }
         }
         return characteristicValues
     }
+
 
     fun getServices(): List<BluetoothGattService> {
         return bluetoothGatt?.services ?: emptyList()
@@ -412,20 +426,26 @@ class BluetoothHandler(
             }
         }
 
-        //region Deprecated functions ? needed?
+
         @Deprecated("Deprecated")
-        override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int
+        ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 handleCharacteristicRead(gatt, characteristic, characteristic.value)
             }
         }
 
-        //onDescriptorRead?, onCharacteristicChanged?,
-        //endregion
+            //onDescriptorRead?, onCharacteristicChanged?,
+            //endregion
 
-        // API 33+ overrides
+            // API 33+ overrides
 
-        //region Read functions
+            //region Read functions
+
+
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
@@ -463,12 +483,14 @@ class BluetoothHandler(
             value: ByteArray
         ) {
             Log.i(TAG, "Descriptor read: ${value.contentToString()}")
-            // Process the read data
+                // Process the read data
             onDescriptorRead?.invoke(value)
         }
-        //endregion
+            //endregion
 
-        //region Write functions
+            //region Write functions
+
+
         override fun onDescriptorWrite(
             gatt: BluetoothGatt,
             descriptor: BluetoothGattDescriptor,
@@ -481,9 +503,9 @@ class BluetoothHandler(
                 Log.e(TAG, "Descriptor write failed: ${descriptor.uuid}, status: $status")
             }
         }
-        //endregion
+            //endregion
 
-        //region "Subscribe" to characteristic value functions
+            //region "Subscribe" to characteristic value functions
 
         @Deprecated("Deprecated for Android 13+")
         @Suppress("DEPRECATION")
@@ -506,7 +528,7 @@ class BluetoothHandler(
                 Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: $value")
             }
         }
-        //endregion
+            //endregion
     }
 }
 

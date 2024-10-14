@@ -18,10 +18,9 @@ object BluetoothUUIDs {
     val UUID_SERVICE_BATTERY: UUID = UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb")
     val UUID_BATTERY_LEVEL: UUID = UUID.fromString("00002A19-0000-1000-8000-00805f9b34fb")
 
-    /*val deviceDetailsUUIDs = listOf(
-        UUID.fromString("00002A29-0000-1000-8000-00805f9b34fb"),
-        UUID.fromString("00002A24-0000-1000-8000-00805f9b34fb"),
-        UUID.fromString("00002A19-0000-1000-8000-00805f9b34fb")
-    )*/
-
+    val serviceAndCharacteristicUUIDs: List<Pair<UUID, UUID>> = listOf(
+        Pair(UUID.fromString("0000180A-0000-1000-8000-00805f9b34fb"), UUID.fromString("00002A29-0000-1000-8000-00805f9b34fb")),
+        Pair(UUID.fromString("0000180A-0000-1000-8000-00805f9b34fb"), UUID.fromString("00002A24-0000-1000-8000-00805f9b34fb")),
+        Pair(UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb"), UUID.fromString("00002A19-0000-1000-8000-00805F9B34FB"))
+    )
 }

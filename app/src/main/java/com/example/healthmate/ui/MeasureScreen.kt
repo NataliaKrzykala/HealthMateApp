@@ -155,8 +155,6 @@ fun BluetoothDetailsScreen(
     bluetoothViewModel: BluetoothViewModel,
     onBack: () -> Unit
 ) {
-
-
     val characteristicValues by bluetoothViewModel.characteristicValues.collectAsState()
     val device by bluetoothViewModel.currentDevice.collectAsState()
     val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
@@ -164,7 +162,7 @@ fun BluetoothDetailsScreen(
     LaunchedEffect(Unit) {
         val services = bluetoothHandler.getServices()
         if (services.isNotEmpty()) {
-            val values = bluetoothHandler.readAllCharacteristics(services)
+            val values = bluetoothHandler.readAllCharacteristics(services, BluetoothUUIDs.serviceAndCharacteristicUUIDs)
             bluetoothViewModel.updateCharacteristicValues(values)
             bluetoothHandler.handleDeviceActions(services, device)
         }
@@ -253,7 +251,7 @@ fun CharacteristicRead(
             if (expanded) {
                 if(value.length > 2){
                     Text(
-                        text = value, //hexToString(value)
+                        text = hexToString(value), //hexToString(value)
                         style = Typography.bodyMedium
                     )
                 } else {
