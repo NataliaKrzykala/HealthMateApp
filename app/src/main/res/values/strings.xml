@@ -47,4 +47,8 @@
     <string name="manufacturer">Producent</string>
     <string name="device_model">Model urządzenia</string>
     <string name="battery_level">Poziom naładowania baterii</string>
+
+    <string name="no_data">Brak danych</string>
+    <string name="no_dev_connected">Urządzenie nie jest połączone</string>
+    <string name="dev_name">%1$s</string>
 </resources>

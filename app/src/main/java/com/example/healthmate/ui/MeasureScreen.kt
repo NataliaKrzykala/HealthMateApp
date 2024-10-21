@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
+import android.util.Log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
@@ -49,6 +50,7 @@ import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ui.theme.Typography
+import kotlinx.coroutines.delay
 import java.util.UUID
 
 
@@ -68,7 +70,6 @@ fun MeasureScreen(
 
     if (showDetails) {
         BluetoothDetailsScreen(
-            services = services,
             bluetoothHandler = bluetoothHandler,
             bluetoothViewModel = bluetoothViewModel
         ) {
@@ -110,7 +111,7 @@ fun MeasureScreen(
                         style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                     )
                 }else{
-                    PairedDevicesList(pairedDevices, bluetoothHandler)
+                    PairedDevicesList(pairedDevices, bluetoothHandler, bluetoothViewModel)
                 }
             }
         }
@@ -120,22 +121,27 @@ fun MeasureScreen(
 @Composable
 fun PairedDevicesList(
     pairedDevices: Set<BluetoothDevice>?,
-    bluetoothHandler: BluetoothHandler
+    bluetoothHandler: BluetoothHandler,
+    bluetoothViewModel: BluetoothViewModel
     ) {
+    Log.e("Bluetooth", "Setting onDeviceConnectedCallback")
+    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
+        Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
+        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
+    }
+
     Column {
         Text(
             text = stringResource(R.string.paired_devices),
             style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
         )
         pairedDevices?.forEach { device ->
-            // Sprawdzenie uprawnień przed wyświetleniem nazwy urządzenia
             if (bluetoothHandler.bluetoothEnabled()) {
                 if (device.name == "nRF Connect" || device.name == "A&D_UT201BLEA_90F83") {
                     Text(
                         text = device.name ?: "Unknown Device",
                         modifier = Modifier.clickable {
                             bluetoothHandler.connectToGattServer(device)
-                            //bluetoothHandler.connectedDevice = device
                         }
                     )
                 }
@@ -150,31 +156,31 @@ fun PairedDevicesList(
 
 @Composable
 fun BluetoothDetailsScreen(
-    services: List<BluetoothGattService>,
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel,
     onBack: () -> Unit
 ) {
-    val characteristicValues by bluetoothViewModel.characteristicValues.collectAsState()
-    val device by bluetoothViewModel.currentDevice.collectAsState()
-    val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
-
-    LaunchedEffect(Unit) {
-        val services = bluetoothHandler.getServices()
-        if (services.isNotEmpty()) {
-            val values = bluetoothHandler.readAllCharacteristics(services, BluetoothUUIDs.serviceAndCharacteristicUUIDs)
-            bluetoothViewModel.updateCharacteristicValues(values)
-            bluetoothHandler.handleDeviceActions(services, device)
-        }
-    }
-
     bluetoothHandler.onCharacteristicChangedCallback = { value ->
         bluetoothViewModel.updateCharacteristicValue(value) // Odebranie wartości indicate
     }
 
-    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
-        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
+    val characteristicValues by bluetoothViewModel.characteristicValues.collectAsState()
+    val device by bluetoothViewModel.currentDevice.collectAsState()
+    val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
+
+    LaunchedEffect(device) {
+        Log.e("Bluetooth", "LaunchedEffect1 triggered with device: $device")
+        if (device != null) {
+            Log.e("Bluetooth", "LaunchedEffect2 triggered with device: $device")
+            val services = bluetoothHandler.getServices()
+            if (services.isNotEmpty()) {
+                val values = bluetoothHandler.readAllCharacteristics(services, BluetoothUUIDs.serviceAndCharacteristicUUIDs)
+                bluetoothViewModel.updateCharacteristicValues(values)
+                bluetoothHandler.handleDeviceActions(services, device)
+            }
+        }
     }
+
 
     var devName = bluetoothHandler.getConnectedDeviceName()
 
@@ -183,13 +189,13 @@ fun BluetoothDetailsScreen(
 
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Device name: $devName",
+                text = stringResource(R.string.dev_name, devName ?: stringResource(R.string.no_data)),
                 style = Typography.bodyMedium
             )
 
             device?.getDisplayData()?.forEach { key ->
                 Text(
-                    text = "$key: ${parsedData?.get(key) ?: "No data"}",
+                    text = "$key: ${parsedData?.get(key) ?: stringResource(R.string.no_data)}",
                     style = Typography.bodyMedium
                 )
             }
@@ -197,22 +203,23 @@ fun BluetoothDetailsScreen(
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.manufacturer),
-                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER] ?: "No data"
+                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER] ?: stringResource(R.string.no_data)
             )
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.device_model),
-                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER] ?: "No data"
+                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER] ?: stringResource(R.string.no_data)
             )
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.battery_level),
-                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL] ?: "No data"
+                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL] ?: stringResource(R.string.no_data)
             )
         }
 
     } else {
-        Text(text = "No device connected")
+        //bluetoothHandler.connectToGattServer(device)
+        Text(stringResource(R.string.no_dev_connected))
     }
 }
 
@@ -251,7 +258,7 @@ fun CharacteristicRead(
             if (expanded) {
                 if(value.length > 2){
                     Text(
-                        text = hexToString(value), //hexToString(value)
+                        text = hexToString(value),
                         style = Typography.bodyMedium
                     )
                 } else {
@@ -285,15 +292,35 @@ private fun CharacteristicReadMoreButton(
 
 fun ByteArray.toHexString(): String = joinToString(separator = " ") { byte -> "%02X".format(byte) }
 
+//fun hexToString(hex: String): String {
+//    val output = StringBuilder("")
+//
+//    // Przechodzimy przez hex parami (każde dwie cyfry reprezentują jeden znak)
+//    for (i in hex.indices step 2) {
+//        val str = hex.substring(i, i + 2)
+//        // Konwersja z hex do wartości liczbowej, a następnie na znak
+//        val char = str.toInt(16).toChar()
+//        output.append(char)
+//    }
+//
+//    return output.toString()
+//}
+
 fun hexToString(hex: String): String {
     val output = StringBuilder("")
 
+    // Usuń wszystkie niepoprawne znaki (nie należące do zakresu 0-9, a-f, A-F)
+    val sanitizedHex = hex.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+
     // Przechodzimy przez hex parami (każde dwie cyfry reprezentują jeden znak)
-    for (i in hex.indices step 2) {
-        val str = hex.substring(i, i + 2)
-        // Konwersja z hex do wartości liczbowej, a następnie na znak
-        val char = str.toInt(16).toChar()
-        output.append(char)
+    for (i in sanitizedHex.indices step 2) {
+        // Upewniamy się, że mamy parzystą liczbę znaków
+        if (i + 2 <= sanitizedHex.length) {
+            val str = sanitizedHex.substring(i, i + 2)
+            // Konwersja z hex do wartości liczbowej, a następnie na znak
+            val char = str.toInt(16).toChar()
+            output.append(char)
+        }
     }
 
     return output.toString()

@@ -35,11 +35,11 @@ class BluetoothHandler(
     var connectedDevice: BluetoothDevice? = null
     var onDeviceConnectedCallback: ((BluetoothDev) -> Unit)? = null
 
-    //var onDeviceTypeDetermined: ((BluetoothDev?) -> Unit)? = null
-
     private var onDescriptorRead: ((ByteArray) -> Unit)? = null
     private var onCharacteristicRead: ((UUID, ByteArray) -> Unit)? = null
     var onCharacteristicChangedCallback: ((ByteArray) -> Unit)? = null
+
+    private var deviceType: BluetoothDev? = null
 
     companion object {
         private const val TAG = "BluetoothHandler"
@@ -175,27 +175,34 @@ class BluetoothHandler(
         }
         return connectedDevice?.name // Zwracamy nazwę urządzenia, jeśli jest połączone
     }
+
+    fun getServices(): List<BluetoothGattService> {
+        return bluetoothGatt?.services ?: emptyList()
+    }
     //endregion
 
     //region Enable indication functions (write descriptor, enable indication/notifications)
-    fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray) {
-        bluetoothGatt?.let { gatt ->
-            if (hasBluetoothPermission()) {
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        // API 33 (Tiramisu) lub wyższe
-                        gatt.writeDescriptor(descriptor, value)
-                    } else {
-                        // Dla starszych wersji Androida
-                        descriptor.value = value
-                        gatt.writeDescriptor(descriptor)
-                    }
-                } catch (e: SecurityException) {
-                    Log.e(TAG, "SecurityException: ${e.message}")
+    fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
+        when (deviceType) {
+            is Thermometer -> {
+                val characteristic = services
+                    .find { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE }
+                    ?.getCharacteristic(BluetoothUUIDs.UUID_THERMOMETER_CHARACTERISTIC)
+                characteristic?.let {
+                    enableNotifications(it) // Włącz powiadomienia dla termometru
                 }
-            } else {
-                checkAndRequestBluetoothPermission()
             }
+
+            is BloodPressureMonitor -> {
+                val characteristic = services
+                    .find { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE }
+                    ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
+                characteristic?.let {
+                    enableNotifications(it) // Włącz powiadomienia dla monitora ciśnienia
+                }
+            }
+
+            else -> Log.e(TAG, "Unknown or unsupported device type: $deviceType")
         }
     }
 
@@ -242,12 +249,34 @@ class BluetoothHandler(
             "${characteristic.uuid} doesn't contain the CCC descriptor!"
         )
     }
+
+    fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray) {
+        bluetoothGatt?.let { gatt ->
+            if (hasBluetoothPermission()) {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        // API 33 (Tiramisu) lub wyższe
+                        gatt.writeDescriptor(descriptor, value)
+                    } else {
+                        // Dla starszych wersji Androida
+                        descriptor.value = value
+                        gatt.writeDescriptor(descriptor)
+                    }
+                } catch (e: SecurityException) {
+                    Log.e(TAG, "SecurityException: ${e.message}")
+                }
+            } else {
+                checkAndRequestBluetoothPermission()
+            }
+        }
+    }
     //endregion
 
     //region Handle device type function
     private fun handleDeviceConnection(gatt: BluetoothGatt) {
         val services = gatt.services
-        val deviceType = when {
+
+        deviceType = when {
             services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> Thermometer()
             services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> BloodPressureMonitor()
             else -> null
@@ -256,69 +285,12 @@ class BluetoothHandler(
         // Zgłoś typ urządzenia poprzez callback
         deviceType?.let {
             onDeviceConnectedCallback?.invoke(it)
+            Log.e("Bluetooth", "Callback invoked with: ${it.name}")
         } ?: run {
-            Log.e(TAG, "Unknown device type")
-            //onDeviceConnectedCallback?.invoke(null)  // Przekaż null, jeśli nieznany typ
+            Log.e("Bluetooth", "Unknown device type, callback not invoked")
+            //onDeviceConnectedCallback?.invoke(null)
         }
     }
-
-    fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
-        when (deviceType) {
-            is Thermometer -> {
-                val characteristic = services
-                    .find { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE }
-                    ?.getCharacteristic(BluetoothUUIDs.UUID_THERMOMETER_CHARACTERISTIC)
-                characteristic?.let {
-                    enableNotifications(it) // Włącz powiadomienia dla termometru
-                }
-            }
-
-            is BloodPressureMonitor -> {
-                val characteristic = services
-                    .find { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE }
-                    ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
-                characteristic?.let {
-                    enableNotifications(it) // Włącz powiadomienia dla monitora ciśnienia
-                }
-            }
-
-            else -> Log.e(TAG, "Unknown or unsupported device type")
-        }
-    }
-
-
-    /*private fun handleDeviceConnection(gatt: BluetoothGatt) {
-        val services = gatt.services
-        val deviceType = when {
-            services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> Thermometer()
-            services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> BloodPressureMonitor()
-            else -> null
-        }
-
-        deviceType?.let {
-            onDeviceConnectedCallback?.invoke(it)
-        } ?: run {
-            Log.e(TAG, "Unknown device type")
-        }
-
-        when (deviceType) {
-            is Thermometer -> {
-                val characteristic = gatt.getService(BluetoothUUIDs.UUID_THERMOMETER_SERVICE)
-                    ?.getCharacteristic(BluetoothUUIDs.UUID_THERMOMETER_CHARACTERISTIC)
-                characteristic?.let {
-                    enableNotifications(it)
-                }
-            }
-            is BloodPressureMonitor -> {
-                val characteristic = gatt.getService(BluetoothUUIDs.UUID_BPM_SERVICE)
-                    ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
-                characteristic?.let {
-                    enableNotifications(it) // Włącz powiadomienia
-                }
-            }
-            else -> Log.e(TAG, "Unknown device type")
-        }
-    }*/
     //endregion
 
     //region Read characteristic by UUID function
@@ -351,6 +323,7 @@ class BluetoothHandler(
     }
     //endregion
 
+    //region Read all needed characteristics
     @OptIn(ExperimentalStdlibApi::class)
     suspend fun readCharacteristicValue(serviceUUID: UUID, characteristicUUID: UUID): String? {
         return suspendCoroutine { continuation ->
@@ -390,17 +363,14 @@ class BluetoothHandler(
         }
         return characteristicValues
     }
-
-
-    fun getServices(): List<BluetoothGattService> {
-        return bluetoothGatt?.services ?: emptyList()
-    }
+    //endregion
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.i(TAG, "Connected to GATT server.")
+                connectedDevice = gatt.device
                 if (hasBluetoothPermission()) {
                     try {
                         gatt.discoverServices()
@@ -426,7 +396,7 @@ class BluetoothHandler(
             }
         }
 
-
+        //region Deprecated (?) read functions
         @Deprecated("Deprecated")
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
@@ -437,15 +407,11 @@ class BluetoothHandler(
                 handleCharacteristicRead(gatt, characteristic, characteristic.value)
             }
         }
+        //endregion
 
-            //onDescriptorRead?, onCharacteristicChanged?,
-            //endregion
+        // API 33+ overrides
 
-            // API 33+ overrides
-
-            //region Read functions
-
-
+        //region Read functions
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
@@ -486,11 +452,9 @@ class BluetoothHandler(
                 // Process the read data
             onDescriptorRead?.invoke(value)
         }
-            //endregion
+        //endregion
 
-            //region Write functions
-
-
+        //region Write functions
         override fun onDescriptorWrite(
             gatt: BluetoothGatt,
             descriptor: BluetoothGattDescriptor,
@@ -503,10 +467,9 @@ class BluetoothHandler(
                 Log.e(TAG, "Descriptor write failed: ${descriptor.uuid}, status: $status")
             }
         }
-            //endregion
+        //endregion
 
-            //region "Subscribe" to characteristic value functions
-
+        //region "Subscribe" to characteristic value functions
         @Deprecated("Deprecated for Android 13+")
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(
@@ -528,7 +491,7 @@ class BluetoothHandler(
                 Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: $value")
             }
         }
-            //endregion
+        //endregion
     }
 }
 
