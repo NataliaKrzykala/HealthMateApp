@@ -1,19 +1,19 @@
 package com.example.healthmate.ui
 
 import java.util.Calendar
-data class FlagAnalysisResult(
+data class TemperatureFlag(
     val isTemperatureInCelsius: Boolean, // True jeśli temperatura w Celsjuszach, False jeśli w Fahrenheitach
     val isTimestampPresent: Boolean,   // True jeśli timestamp obecne
     val isTemperatureTypePresent: Boolean // True jeśli pole typu temperatury obecne
 )
-fun parseSettingsFromByte(flagByte: Byte?): FlagAnalysisResult? {
+fun parseTemperatureFlag(flagByte: Byte?): TemperatureFlag? {
     if(flagByte == null) return null
 
     val isTemperatureInCelsius = (flagByte.toInt() and 0x01) == 0 // Ostatni bit
     val isTimestampPresent = (flagByte.toInt() shr 1 and 0x01) == 1 // Przedostatni bit
     val isTemperatureTypePresent = (flagByte.toInt() shr 2 and 0x01) == 1 // Przedprzedostatni bit
 
-    return FlagAnalysisResult(
+    return TemperatureFlag(
         isTemperatureInCelsius = isTemperatureInCelsius,
         isTimestampPresent = isTimestampPresent,
         isTemperatureTypePresent = isTemperatureTypePresent
@@ -47,7 +47,7 @@ fun parseTimestampFromByte(byteArray: ByteArray?): Calendar? {
     return calendar
 }
 
-fun parseMeasurePlaceFromByte(measurePlaceByte: Byte?): String? {
+/*fun parseMeasurePlaceFromByte(measurePlaceByte: Byte?): String? {
     if(measurePlaceByte == null) return null
     return when (measurePlaceByte.toInt() and 0xFF) {
         0x01 -> "Pacha"
@@ -61,5 +61,36 @@ fun parseMeasurePlaceFromByte(measurePlaceByte: Byte?): String? {
         0x09 -> "Błona bębenkowa"
         else -> "Nieznane"
     }
+}*/
+
+data class WeightScaleFlag(
+    val isInKilograms: Boolean,
+    val isTimestampPresent: Boolean,
+    val isUserIdPresent: Boolean,
+    val isHeightPresent: Boolean
+)
+fun parseWeightScaleFlag(flagByte: Byte?): WeightScaleFlag? {
+    if(flagByte == null) return null
+
+    val isInKilograms = (flagByte.toInt() and 0x01) == 0
+    val isTimestampPresent = (flagByte.toInt() shr 1 and 0x01) == 1
+    val isUserIdPresent = (flagByte.toInt() shr 2 and 0x01) == 1
+    val isHeightPresent = (flagByte.toInt() shr 3 and 0x01) == 1
+
+    return WeightScaleFlag(
+        isInKilograms = isInKilograms,
+        isTimestampPresent = isTimestampPresent,
+        isUserIdPresent = isUserIdPresent,
+        isHeightPresent = isHeightPresent
+    )
+}
+
+fun parseWeightMeasurement(byteArray: ByteArray?): Float? {
+    if(byteArray == null) return null
+
+    val weightValue: Int = (byteArray[1].toInt() and 0xFF shl 8) or (byteArray[0].toInt() and 0xFF)
+
+    // Przeliczenie wartości na kg z rozdzielczością 0.005 kg - /**TODO - ZMIENIĆ?/
+    return (weightValue * 0.005).toFloat()
 }
 

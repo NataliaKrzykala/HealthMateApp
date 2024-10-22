@@ -193,12 +193,21 @@ class BluetoothHandler(
                 }
             }
 
+            is WeightScale -> {
+                val characteristic = services
+                    .find { it.uuid == BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE }
+                    ?.getCharacteristic(BluetoothUUIDs.UUID_WEIGHT_SCALE_CHARACTERISTIC)
+                characteristic?.let {
+                    enableNotifications(it) // Włącz powiadomienia dla wagi
+                }
+            }
+
             is BloodPressureMonitor -> {
                 val characteristic = services
                     .find { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE }
                     ?.getCharacteristic(BluetoothUUIDs.UUID_BPM_CHARACTERISTIC)
                 characteristic?.let {
-                    enableNotifications(it) // Włącz powiadomienia dla monitora ciśnienia
+                    enableNotifications(it) // Włącz powiadomienia dla ciśnieniomierza
                 }
             }
 
@@ -278,6 +287,7 @@ class BluetoothHandler(
 
         deviceType = when {
             services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> Thermometer()
+            services.any { it.uuid == BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE } -> WeightScale()
             services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> BloodPressureMonitor()
             else -> null
         }
@@ -428,7 +438,7 @@ class BluetoothHandler(
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            Log.i(TAG, "Characteristic read: ${value.contentToString()}")
+            Log.i(TAG, "Characteristic ${characteristic.uuid} read: ${value.contentToString()}")
             // Process the read data
             onCharacteristicRead?.invoke(characteristic.uuid, value)
         }

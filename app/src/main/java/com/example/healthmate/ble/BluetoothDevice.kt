@@ -1,10 +1,11 @@
 package com.example.healthmate.ble
 
 import android.util.Log
-import com.example.healthmate.ui.parseMeasurePlaceFromByte
-import com.example.healthmate.ui.parseSettingsFromByte
+import com.example.healthmate.ui.parseTemperatureFlag
 import com.example.healthmate.ui.parseTemperatureFromByte
 import com.example.healthmate.ui.parseTimestampFromByte
+import com.example.healthmate.ui.parseWeightMeasurement
+import com.example.healthmate.ui.parseWeightScaleFlag
 import java.util.UUID
 
 abstract class BluetoothDev(val name: String) {
@@ -18,7 +19,7 @@ class Thermometer : BluetoothDev("Thermometer") {
         val resultMap = mutableMapOf<String, Any>()
         characteristicValue?.let {
 
-            val flagResult = parseSettingsFromByte(characteristicValue[0])
+            val flagResult = parseTemperatureFlag(characteristicValue[0])
 
             if(flagResult != null) {
                 val temp = parseTemperatureFromByte(characteristicValue.copyOfRange(1, 5))
@@ -53,7 +54,47 @@ class Thermometer : BluetoothDev("Thermometer") {
     }
 
     override fun getDisplayData(): List<String> {
-        return listOf("Temperatura", "Data pomiaru", "Miejsce pomiaru")
+        return listOf("Temperatura", "Data pomiaru") //"Miejsce pomiaru"
+    }
+}
+
+class WeightScale : BluetoothDev("Weight scale") {
+    override fun parseData(characteristicValue: ByteArray?): Map<String, Any> {
+        Log.e("Bluetooth", "Weight scale: ${characteristicValue?.toHexString()}")
+        val resultMap = mutableMapOf<String, Any>()
+        characteristicValue?.let {
+
+            val flagResult = parseWeightScaleFlag(characteristicValue[0])
+
+            if(flagResult != null) {
+                val weightMeas = parseWeightMeasurement(characteristicValue.copyOfRange(1, 3))
+                weightMeas?.let { weight ->
+                    val unit = if (flagResult.isInKilograms == true) "kg" else "lb"
+                    resultMap["Waga"] = "$weight $unit"
+                }
+
+                if (flagResult.isTimestampPresent) {
+                    val timestamp = parseTimestampFromByte(characteristicValue.copyOfRange(3, 10))
+                    timestamp?.let { resultMap["Data pomiaru"] = it.time }
+                } else {
+                    //Log.d("No flag")
+                }
+
+                /*TODO: isUserIdPresent and isHeightPresent*/
+
+            } else {
+                val weightMeas = parseWeightMeasurement(characteristicValue.copyOfRange(1, 3))
+                weightMeas?.let { weight ->
+                    val unit =  "kg"
+                    resultMap["Waga"] = "$weight $unit"
+                }
+            }
+       }
+        return resultMap
+    }
+
+    override fun getDisplayData(): List<String> {
+        return listOf("Waga", "Data pomiaru")
     }
 }
 

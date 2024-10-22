@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -49,6 +51,7 @@ import com.example.healthmate.R
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
+import com.example.healthmate.ble.Thermometer
 import com.example.healthmate.ui.theme.Typography
 import kotlinx.coroutines.delay
 import java.util.UUID
@@ -98,7 +101,7 @@ fun MeasureScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.padding_small))
             ) {
-                if(pairedDevices == null) {
+                if (pairedDevices == null) {
                     LottieAnimation(
                         composition = composition,
                         progress = {
@@ -110,7 +113,7 @@ fun MeasureScreen(
                         stringResource(R.string.paired_list),
                         style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                     )
-                }else{
+                } else {
                     PairedDevicesList(pairedDevices, bluetoothHandler, bluetoothViewModel)
                 }
             }
@@ -123,7 +126,7 @@ fun PairedDevicesList(
     pairedDevices: Set<BluetoothDevice>?,
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel
-    ) {
+) {
     Log.e("Bluetooth", "Setting onDeviceConnectedCallback")
     bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
         Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
@@ -137,7 +140,7 @@ fun PairedDevicesList(
         )
         pairedDevices?.forEach { device ->
             if (bluetoothHandler.bluetoothEnabled()) {
-                if (device.name == "nRF Connect" || device.name == "A&D_UT201BLEA_90F83") {
+                if (device.name.contains("A&D")) {
                     Text(
                         text = device.name ?: "Unknown Device",
                         modifier = Modifier.clickable {
@@ -174,46 +177,78 @@ fun BluetoothDetailsScreen(
             Log.e("Bluetooth", "LaunchedEffect2 triggered with device: $device")
             val services = bluetoothHandler.getServices()
             if (services.isNotEmpty()) {
-                val values = bluetoothHandler.readAllCharacteristics(services, BluetoothUUIDs.serviceAndCharacteristicUUIDs)
+                val values = bluetoothHandler.readAllCharacteristics(
+                    services,
+                    BluetoothUUIDs.serviceAndCharacteristicUUIDs
+                )
                 bluetoothViewModel.updateCharacteristicValues(values)
                 bluetoothHandler.handleDeviceActions(services, device)
             }
         }
     }
 
-
     var devName = bluetoothHandler.getConnectedDeviceName()
-
+    var devTyp = "no device"
     if (device != null) {
+        if (device == Thermometer()) {
+            devTyp = "termometr"
+        }
         val parsedData = device?.parseData(characteristicValue)
 
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = stringResource(R.string.dev_name, devName ?: stringResource(R.string.no_data)),
-                style = Typography.bodyMedium
-            )
-
-            device?.getDisplayData()?.forEach { key ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        )
+        {
+            Card(
+                modifier = Modifier
+                    .wrapContentSize(Alignment.Center),
+                elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+            ) {
                 Text(
-                    text = "$key: ${parsedData?.get(key) ?: stringResource(R.string.no_data)}",
+                    text = stringResource(
+                        R.string.dev_name,
+                        devName ?: stringResource(R.string.no_data)
+                    ),
+                    style = Typography.displayMedium
+                )
+
+                Text(
+                    text = stringResource(
+                        R.string.dev_type,
+                        devTyp ?: stringResource(R.string.no_data)
+                    ),
                     style = Typography.bodyMedium
                 )
+
+                device?.getDisplayData()?.forEach { key ->
+                    Text(
+                        text = "$key: ${parsedData?.get(key) ?: stringResource(R.string.no_data)}",
+                        style = Typography.bodyMedium
+                    )
+                }
             }
 
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.manufacturer),
-                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER] ?: stringResource(R.string.no_data)
+                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER]
+                    ?: stringResource(R.string.no_data)
             )
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.device_model),
-                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER] ?: stringResource(R.string.no_data)
+                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER]
+                    ?: stringResource(R.string.no_data)
             )
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
                 name = stringResource(R.string.battery_level),
-                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL] ?: stringResource(R.string.no_data)
+                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL]
+                    ?: stringResource(R.string.no_data)
             )
         }
 
@@ -256,13 +291,13 @@ fun CharacteristicRead(
                 )
             }
             if (expanded) {
-                if(value.length > 2){
+                if (value.length > 2) {
                     Text(
                         text = hexToString(value),
                         style = Typography.bodyMedium
                     )
                 } else {
-                   Text(
+                    Text(
                         text = value, //.hex
                         style = Typography.bodyMedium
                     )
