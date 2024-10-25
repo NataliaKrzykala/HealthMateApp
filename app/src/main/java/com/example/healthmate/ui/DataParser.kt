@@ -94,3 +94,105 @@ fun parseWeightMeasurement(byteArray: ByteArray?): Float? {
     return (weightValue * 0.005).toFloat()
 }
 
+// Blood Pressure Monitor
+
+data class BPMFlag(
+    val isInmmHg: Boolean,
+    val isTimestampPresent: Boolean,
+    val isPulsePresent: Boolean,
+    val isUserIdPresent: Boolean,
+    val isMeasStatusFlagPresent: Boolean
+)
+fun parseBPMFlag(flagByte: Byte?): BPMFlag? {
+    if(flagByte == null) return null
+
+    val isInmmHg = (flagByte.toInt() and 0x01) == 0
+    val isTimestampPresent = (flagByte.toInt() shr 1 and 0x01) == 1
+    val isPulsePresent = (flagByte.toInt() shr 2 and 0x01) == 1
+    val isUserIdPresent = (flagByte.toInt() shr 3 and 0x01) == 1
+    val isMeasStatusFlagPresent = (flagByte.toInt() shr 4 and 0x01) == 1
+
+    return BPMFlag(
+        isInmmHg = isInmmHg,
+        isTimestampPresent = isTimestampPresent,
+        isPulsePresent = isPulsePresent,
+        isUserIdPresent = isUserIdPresent,
+        isMeasStatusFlagPresent = isMeasStatusFlagPresent
+    )
+}
+
+fun parseSYSMeasurement(byteArray: ByteArray?): Float? {
+    if(byteArray == null) return null
+
+    val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+
+    val exponent = byteArray[1].toInt() and 0x0F
+
+    val result = mantissa * Math.pow(10.0, exponent.toDouble())
+    return result.toFloat()
+}
+
+fun parseDIAMeasurement(byteArray: ByteArray?): Float? {
+    if(byteArray == null) return null
+
+    val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+
+    val exponent = byteArray[1].toInt() and 0x0F
+
+    val result = mantissa * Math.pow(10.0, exponent.toDouble())
+    return result.toFloat()
+
+}
+
+fun parseMAPMeasurement(byteArray: ByteArray?): Float? {
+    if(byteArray == null) return null
+
+    val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+
+    val exponent = byteArray[1].toInt() and 0x0F
+
+    val result = mantissa * Math.pow(10.0, exponent.toDouble())
+    return result.toFloat()
+}
+
+fun parsePulseMeasurement(byteArray: ByteArray?): Float? {
+    if(byteArray == null) return null
+
+    val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+
+    val exponent = byteArray[1].toInt() and 0x0F
+
+    val result = mantissa * Math.pow(10.0, exponent.toDouble())
+    return result.toFloat()
+}
+
+data class MeasStatusFlag(
+    val noBodyMovement: Boolean,
+    val cuffsFitProperly: Boolean,
+    val noIrregularPulseDetected: Boolean,
+    val pulseStatus: Int, //?
+    val properMeasurementPosition: Boolean
+)
+fun parseMeasStatusFlag(flagByte: Byte?): MeasStatusFlag? {
+    if(flagByte == null) return null
+
+    //val number = flagByte.toInt() and 0xFF
+
+    val noBodyMovement = (flagByte.toInt() and 0x01) == 0
+    val cuffsFitProperly = (flagByte.toInt() shr 1 and 0x01) == 0
+    val noIrregularPulseDetected = (flagByte.toInt() shr 2 and 0x01) == 0
+
+    val thirdBit = (flagByte.toInt() shr 3 and 0x01)
+    val fourthBit = (flagByte.toInt() shr 4 and 0x01)
+    val pulseStatus = ((thirdBit shl 1) or fourthBit)
+
+    val properMeasurementPosition = (flagByte.toInt() shr 4 and 0x01) == 0
+
+    return MeasStatusFlag(
+        noBodyMovement = noBodyMovement,
+        cuffsFitProperly = cuffsFitProperly,
+        noIrregularPulseDetected = noIrregularPulseDetected,
+        pulseStatus = pulseStatus,
+        properMeasurementPosition = properMeasurementPosition,
+    )
+}

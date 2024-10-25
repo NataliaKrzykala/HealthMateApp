@@ -140,7 +140,7 @@ fun PairedDevicesList(
         )
         pairedDevices?.forEach { device ->
             if (bluetoothHandler.bluetoothEnabled()) {
-                if (device.name.contains("A&D")) {
+                if (device.name.contains("A&D") || device.name.contains("nRF")) {
                     Text(
                         text = device.name ?: "Unknown Device",
                         modifier = Modifier.clickable {
