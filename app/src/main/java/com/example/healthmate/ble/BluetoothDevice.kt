@@ -73,7 +73,7 @@ class WeightScale : BluetoothDev("Weight scale") {
             val flagResult = parseWeightScaleFlag(characteristicValue[0])
 
             if(flagResult != null) {
-                val weightMeas = parseWeightMeasurement(characteristicValue.copyOfRange(1, 3))
+                val weightMeas = parseWeightMeasurement(characteristicValue.copyOfRange(1, 3), flagResult.isInKilograms)
                 weightMeas?.let { weight ->
                     val unit = if (flagResult.isInKilograms == true) "kg" else "lb"
                     resultMap["Waga"] = "$weight $unit"
@@ -89,9 +89,9 @@ class WeightScale : BluetoothDev("Weight scale") {
                 /*TODO: isUserIdPresent and isHeightPresent*/
 
             } else {
-                val weightMeas = parseWeightMeasurement(characteristicValue.copyOfRange(1, 3))
+                val weightMeas = parseWeightMeasurement(characteristicValue.copyOfRange(1, 3), true)
                 weightMeas?.let { weight ->
-                    val unit =  "kg"
+                    val unit = "kg"
                     resultMap["Waga"] = "$weight $unit"
                 }
             }
@@ -114,27 +114,23 @@ class BloodPressureMonitor : BluetoothDev("Blood Pressure Monitor") {
 
             if (flagResult != null) {
 
-                if(flagResult.isInmmHg == true) {
-
-                    val SYSMeas = parseSYSMeasurement(characteristicValue.copyOfRange(1, 3))
+                    val SYSMeas = parseSYSMeasurement(characteristicValue.copyOfRange(1, 3), flagResult.isInmmHg)
                     SYSMeas?.let { SYS ->
-                        val unit = "mmHg"
+                        val unit = if (flagResult.isInmmHg == true) "mmHg" else "kPa"
                         resultMap["SYS"] = "$SYS $unit"
                     }
 
-                    val DIAMeas = parseDIAMeasurement(characteristicValue.copyOfRange(3, 5))
+                    val DIAMeas = parseDIAMeasurement(characteristicValue.copyOfRange(3, 5), flagResult.isInmmHg)
                     DIAMeas?.let { DIA ->
-                        val unit = "mmHg"
+                        val unit = if (flagResult.isInmmHg == true) "mmHg" else "kPa"
                         resultMap["DIA"] = "$DIA $unit"
                     }
 
-                    val MAPMeas = parseMAPMeasurement(characteristicValue.copyOfRange(5, 7))
+                    val MAPMeas = parseMAPMeasurement(characteristicValue.copyOfRange(5, 7), flagResult.isInmmHg)
                     MAPMeas?.let { MAP ->
-                        val unit = "mmHg"
+                        val unit = if (flagResult.isInmmHg == true) "mmHg" else "kPa"
                         resultMap["MAP"] = "$MAP $unit"
                     }
-
-                }
 
                 if (flagResult.isTimestampPresent) {
                     val timestamp = parseTimestampFromByte(characteristicValue.copyOfRange(7, 14))

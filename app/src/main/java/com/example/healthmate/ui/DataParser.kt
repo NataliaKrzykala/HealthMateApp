@@ -85,13 +85,17 @@ fun parseWeightScaleFlag(flagByte: Byte?): WeightScaleFlag? {
     )
 }
 
-fun parseWeightMeasurement(byteArray: ByteArray?): Float? {
+fun parseWeightMeasurement(byteArray: ByteArray?, isInKilograms: Boolean): Float? {
     if(byteArray == null) return null
 
     val weightValue: Int = (byteArray[1].toInt() and 0xFF shl 8) or (byteArray[0].toInt() and 0xFF)
 
-    // Przeliczenie wartości na kg z rozdzielczością 0.005 kg - /**TODO - ZMIENIĆ?/
-    return (weightValue * 0.005).toFloat()
+    if(isInKilograms) {
+        // Przeliczenie wartości na kg z rozdzielczością 0.005 kg - /**TODO - ZMIENIĆ?/
+        return (weightValue * 0.005).toFloat()
+    } else {
+        return (weightValue * 0.01).toFloat()
+    }
 }
 
 // Blood Pressure Monitor
@@ -121,35 +125,50 @@ fun parseBPMFlag(flagByte: Byte?): BPMFlag? {
     )
 }
 
-fun parseSYSMeasurement(byteArray: ByteArray?): Float? {
+fun parseSYSMeasurement(byteArray: ByteArray?, isInmmHg: Boolean): Float? {
     if(byteArray == null) return null
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+    var exponent = 0
 
-    val exponent = byteArray[1].toInt() and 0x0F
+    if(isInmmHg) {
+        exponent = byteArray[1].toInt() and 0x0F
+    } else {
+        exponent = 3
+    }
 
     val result = mantissa * Math.pow(10.0, exponent.toDouble())
     return result.toFloat()
 }
 
-fun parseDIAMeasurement(byteArray: ByteArray?): Float? {
+fun parseDIAMeasurement(byteArray: ByteArray?, isInmmHg: Boolean): Float? {
     if(byteArray == null) return null
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+    var exponent = 0
 
-    val exponent = byteArray[1].toInt() and 0x0F
+    if(isInmmHg) {
+        exponent = byteArray[1].toInt() and 0x0F
+    } else {
+        exponent = 3
+    }
 
     val result = mantissa * Math.pow(10.0, exponent.toDouble())
     return result.toFloat()
 
 }
 
-fun parseMAPMeasurement(byteArray: ByteArray?): Float? {
+fun parseMAPMeasurement(byteArray: ByteArray?, isInmmHg: Boolean): Float? {
     if(byteArray == null) return null
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
+    var exponent = 0
 
-    val exponent = byteArray[1].toInt() and 0x0F
+    if(isInmmHg) {
+        exponent = byteArray[1].toInt() and 0x0F
+    } else {
+        exponent = 3
+    }
 
     val result = mantissa * Math.pow(10.0, exponent.toDouble())
     return result.toFloat()
