@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.healthmate.data.HealthMateUiState
+import com.example.healthmate.data.Urzadzenie
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,7 +81,7 @@ class HealthMateViewModel : ViewModel() {
         _uiState.value = updatedUiState
     }
 
-    fun selectDevice(selectedDevice: Pair<Int, Int>) {
+    fun selectDevice(selectedDevice: Urzadzenie) {
         _uiState.update { currentState ->
             currentState.copy(
                 device = selectedDevice

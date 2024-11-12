@@ -28,10 +28,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothViewModel
-import com.example.healthmate.ble.BluetoothViewModelFactory
+import com.example.healthmate.ble.HealthMateViewModelFactory
+import com.example.healthmate.data.HMApp
+import com.example.healthmate.data.HealthMateRoomDatabase
 import com.example.healthmate.ui.MeasureScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() { /*ComponentActivity*/
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -43,8 +48,8 @@ class MainActivity : ComponentActivity() { /*ComponentActivity*/
                 onScanResult = ::btScan
             )
 
-            val bluetoothViewModelFactory = BluetoothViewModelFactory(bluetoothHandler)
-            val bluetoothViewModel: BluetoothViewModel = ViewModelProvider(this, bluetoothViewModelFactory)
+            val healthMateViewModelFactory = HealthMateViewModelFactory(bluetoothHandler, repository = (application as HMApp).repository)
+            val bluetoothViewModel: BluetoothViewModel = ViewModelProvider(this, healthMateViewModelFactory)
                 .get(BluetoothViewModel::class.java)
 
             bluetoothHandler.checkAndRequestBluetoothPermission()

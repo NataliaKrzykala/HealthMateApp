@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -20,6 +21,8 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
@@ -28,19 +31,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.healthmate.R
+import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.data.DataSource
+import com.example.healthmate.data.Urzadzenie
 import com.example.healthmate.ui.theme.HealthMateTheme
 import com.example.healthmate.ui.theme.Typography
 
 @Composable
 fun MainPanelScreen(
-    rememberedDevices: List<Pair<Int, Int>>,
-    onStatisticsButtonClicked: (Pair<Int, Int>) -> Unit,
+    //rememberedDevices: List<Pair<Int, Int>>,
+    onStatisticsButtonClicked: (Urzadzenie) -> Unit,
     onAccountButtonClicked: () -> Unit,
     onMeasureButtonClicked: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bluetoothViewModel: BluetoothViewModel
 ) {
-    val mediumPadding = dimensionResource(R.dimen.padding_medium)
+    //bluetoothViewModel.clearDatabase()
+    val sensors = bluetoothViewModel.allSensors.collectAsState(initial = emptyList()).value
+    //val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
     Column(
         modifier = modifier,
@@ -71,9 +79,9 @@ fun MainPanelScreen(
                 dimensionResource(id = R.dimen.padding_medium)
             )
         ) {
-            rememberedDevices.forEach { item ->
+            sensors.forEach { item ->
                 SelectRememberedDeviceButton(
-                    labelResourceId = item.first,
+                    labelResourceId = item.nazwa,
                     onClick = { onStatisticsButtonClicked(item) }
                 )
             }
@@ -83,7 +91,7 @@ fun MainPanelScreen(
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .safeDrawingPadding()
-                .padding(mediumPadding),
+                .padding(dimensionResource(R.dimen.padding_medium)),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -100,7 +108,7 @@ fun MainPanelScreen(
 
 @Composable
 fun SelectRememberedDeviceButton(
-    @StringRes labelResourceId: Int,
+    labelResourceId: String, // @StringRes Int
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -109,13 +117,14 @@ fun SelectRememberedDeviceButton(
         modifier = modifier.widthIn(min = 250.dp)
     ) {
         Text(
-            text = stringResource(labelResourceId),
+            text = labelResourceId, //stringResource(labelResourceId),
             style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),)
     }
     Divider(thickness = dimensionResource(R.dimen.thickness_divider))
 }
 
-@Preview
+
+/*@Preview
 @Composable
 fun MainPanelPreview() {
     HealthMateTheme {
@@ -129,4 +138,4 @@ fun MainPanelPreview() {
                 .padding(dimensionResource(R.dimen.padding_medium))
         )
     }
-}
+}*/

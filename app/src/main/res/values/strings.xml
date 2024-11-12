@@ -27,8 +27,8 @@
 
     <string name="last_measurement">Ostatni pomiar</string>
     <string name="history_of_measurements">Historia pomiarów</string>
-    <string name="value">Wartość</string>
-    <string name="date">Data</string>
+    <string name="value">Wartość:</string>
+    <string name="date">Data: %1$s</string>
     <string name="time">Godzina</string>
 
     <string name="your_devices">Twoje urządzenia</string>
@@ -39,9 +39,9 @@
     <string name="paired_devices">Sparowane urządzenia</string>
 
     <string name="temperature">Temperatura</string>
-    <string name="time_of_measurement">Czas pomiaru</string>
+    <string name="time_of_measurement">Data pomiaru</string>
     <string name="thermometer">Termometr</string>
-    <string name="details_of_settings">Szcegóły ustawień</string>
+    <string name="details_of_device">Informacje o urządzeniu</string>
 
     <string name="expand_button_content_description">Zobacz szczegóły</string>
     <string name="manufacturer">Producent</string>
@@ -52,4 +52,36 @@
     <string name="no_dev_connected">Urządzenie nie jest połączone</string>
     <string name="dev_name">%1$s</string>
     <string name="dev_type">%1$s</string>
+
+    <string name="weight">Waga</string>
+    <string name="pulse">Puls</string>
+
+    <string name="body_movement_detected">Wykryto ruch</string>
+    <string name="cuffs_fit">Opaska założona poprawnie</string>
+    <string name="irregular_pulse_detected">Wykryto nieregularny puls</string>
+    <string name="proper_meas_position">Poprawna pozycja podczas pomiaru</string>
+    <string name="pulse_status">Status pulsu</string>
+    <string name="proper">poprawny</string>
+    <string name="over_the_proper">powyżej progu poprawności</string>
+    <string name="below_the_proper">poniżej progu poprawności</string>
+    <string name="no_info">brak informacji</string>
+
+    <string name="yes">tak</string>
+    <string name="no">nie</string>
+
+    <string name="unknown_dev">Nieznane urządzenie</string>
+    <string name="bluetooth_permission_not_granted">Brak uprawnień Bluetooth</string>
+
+    <string name="thermometer_name">termometr</string>
+    <string name="weight_scale_name">waga</string>
+    <string name="bpm_name">ciśnieniomierz</string>
+
+
+    <string name="no_value">Brak</string>
+    <string name="unknown">Nieznana</string>
+    <string name="temperature_name">temperatura</string>
+    <string name="pulse_name">puls</string>
+
+
+
 </resources>

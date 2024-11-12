@@ -17,8 +17,13 @@ import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.healthmate.ui.convertTimestampToByteArray
+import kotlin.coroutines.Continuation
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 class BluetoothHandler(
@@ -279,6 +284,96 @@ class BluetoothHandler(
             }
         }
     }
+
+//    fun writeCharacteristic (services: List<BluetoothGattService>, servUUID: UUID, charUUID: UUID, value: ByteArray) {
+//        val characteristic = services
+//            .find { it.uuid == servUUID }
+//            ?.getCharacteristic(charUUID)
+//        characteristic?.let {
+//            bluetoothGatt?.let { gatt ->
+//                if (hasBluetoothPermission()) {
+//                    try {
+//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                            // API 33 (Tiramisu) lub wyższe
+//                            gatt.writeCharacteristic(characteristic, value, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+//                        } else {
+//                            // Dla starszych wersji Androida
+//                            characteristic.value = value
+//                            gatt.writeCharacteristic(characteristic)
+//                        }
+//                    } catch (e: SecurityException) {
+//                        Log.e(TAG, "SecurityException: ${e.message}")
+//                    }
+//                } else {
+//                    checkAndRequestBluetoothPermission()
+//                }
+//            }
+//        }
+//    }
+
+    private var writeCharacteristicContinuation: Continuation<Unit>? = null
+
+    suspend fun writeCharacteristic(
+        services: List<BluetoothGattService>,
+        servUUID: UUID,
+        charUUID: UUID,
+        value: ByteArray
+    ) = suspendCancellableCoroutine<Unit> { continuation ->
+        val characteristic = services.find { it.uuid == servUUID }?.getCharacteristic(charUUID)
+        characteristic?.let {
+            bluetoothGatt?.let { gatt ->
+                if (hasBluetoothPermission()) {
+                    try {
+                        writeCharacteristicContinuation = continuation
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            // API 33 (Tiramisu) lub wyższe
+                            gatt.writeCharacteristic(characteristic, value, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+                        } else {
+                            // Dla starszych wersji Androida
+                            characteristic.value = value
+                            gatt.writeCharacteristic(characteristic)
+                        }
+                    } catch (e: SecurityException) {
+                        Log.e(TAG, "SecurityException: ${e.message}")
+                        continuation.resumeWithException(e)
+                    }
+                } else {
+                    checkAndRequestBluetoothPermission()
+                    continuation.resumeWithException(SecurityException("Bluetooth permissions not granted"))
+                }
+            } ?: continuation.resumeWithException(IllegalStateException("BluetoothGatt not initialized"))
+        } ?: continuation.resumeWithException(IllegalArgumentException("Characteristic not found"))
+    }
+
+    suspend fun updateDateTime(services: List<BluetoothGattService>) {
+        val date = LocalDateTime.now()
+        val byteArray = convertTimestampToByteArray(date)
+
+        when {
+            services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> writeCharacteristic(services, BluetoothUUIDs.UUID_THERMOMETER_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+            services.any { it.uuid == BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE } -> writeCharacteristic(services, BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+            services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> writeCharacteristic(services, BluetoothUUIDs.UUID_BPM_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+            else -> null
+        }
+
+//        when (deviceType) {
+//            is Thermometer -> {
+//                writeCharacteristic(services, BluetoothUUIDs.UUID_THERMOMETER_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+//            }
+//
+//            is WeightScale -> {
+//                writeCharacteristic(services, BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+//            }
+//
+//            is BloodPressureMonitor -> {
+//                writeCharacteristic(services, BluetoothUUIDs.UUID_BPM_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+//            }
+//
+//            else -> Log.e(TAG, "Did not write to timestamp")
+//        }
+
+        //writeCharacteristic(services, BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
+    }
     //endregion
 
     //region Handle device type function
@@ -477,6 +572,35 @@ class BluetoothHandler(
                 Log.e(TAG, "Descriptor write failed: ${descriptor.uuid}, status: $status")
             }
         }
+
+        override fun onCharacteristicWrite(
+            gatt: BluetoothGatt?,
+            characteristic: BluetoothGattCharacteristic?,
+            status: Int
+        ) {
+            super.onCharacteristicWrite(gatt, characteristic, status)
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Characteristic write successful")
+                // Notify the coroutine that the write has completed
+                writeCharacteristicContinuation?.resume(Unit)
+            } else {
+                Log.e(TAG, "Characteristic write failed with status: $status")
+                writeCharacteristicContinuation?.resumeWithException(Exception("Write failed with status: $status"))
+            }
+        }
+
+//        override fun onCharacteristicWrite(
+//            gatt: BluetoothGatt,
+//            characteristic: BluetoothGattCharacteristic,
+//            status: Int
+//        ) {
+//            super.onCharacteristicWrite(gatt, characteristic, status)
+//            if (status == BluetoothGatt.GATT_SUCCESS) {
+//                Log.i(TAG, "Characteristic write successful: ${characteristic.uuid}")
+//            } else {
+//                Log.e(TAG, "Characteristic write failed: ${characteristic.uuid}, status: $status")
+//            }
+//        }
         //endregion
 
         //region "Subscribe" to characteristic value functions

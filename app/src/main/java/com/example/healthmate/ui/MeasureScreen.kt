@@ -9,13 +9,18 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,9 +30,11 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,10 +55,12 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.healthmate.R
+import com.example.healthmate.ble.BloodPressureMonitor
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ble.Thermometer
+import com.example.healthmate.ble.WeightScale
 import com.example.healthmate.ui.theme.Typography
 import kotlinx.coroutines.delay
 import java.util.UUID
@@ -133,28 +142,82 @@ fun PairedDevicesList(
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
-    Column {
-        Text(
-            text = stringResource(R.string.paired_devices),
-            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold)
-        )
-        pairedDevices?.forEach { device ->
-            if (bluetoothHandler.bluetoothEnabled()) {
-                if (device.name.contains("A&D") || device.name.contains("nRF")) {
-                    Text(
-                        text = device.name ?: "Unknown Device",
-                        modifier = Modifier.clickable {
-                            bluetoothHandler.connectToGattServer(device)
-                        }
-                    )
-                }
-            } else {
-                bluetoothHandler.checkAndRequestBluetoothPermission()
-                // Obsługa braku uprawnień
-                Text("Bluetooth permission not granted")
+    // NEW
+    Column(
+        modifier = Modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Card(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.paired_devices),
+                    style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(
+                dimensionResource(id = R.dimen.padding_medium)
+            )
+        ) {
+            pairedDevices?.forEach {
+                    device ->
+                if (bluetoothHandler.bluetoothEnabled()) {
+                    if (device.name.contains("A&D") || device.name.contains("nRF")) {
+                        ShowSelectedDevice(deviceName = device.name, onDeviceClick = { bluetoothHandler.connectToGattServer(device) })
+                    }
+                } else {
+                    bluetoothHandler.checkAndRequestBluetoothPermission()
+                    // Obsługa braku uprawnień
+                    Text(stringResource(R.string.bluetooth_permission_not_granted))
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .safeDrawingPadding()
+                .padding(dimensionResource(R.dimen.padding_medium)),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+        }
     }
+
+}
+
+@Composable
+fun ShowSelectedDevice(
+    deviceName: String?,
+    onDeviceClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TextButton(
+        onClick = onDeviceClick,
+        modifier = modifier.widthIn(min = 250.dp)
+    ) {
+        if (deviceName != null) {
+            Text(
+                text = deviceName, //stringResource(labelResourceId),
+                style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            )
+        }
+    }
+    Divider(thickness = dimensionResource(R.dimen.thickness_divider))
 }
 
 @Composable
@@ -171,89 +234,174 @@ fun BluetoothDetailsScreen(
     val device by bluetoothViewModel.currentDevice.collectAsState()
     val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
 
+    var devName = bluetoothHandler.getConnectedDeviceName()
+    var isEffectTriggered = remember { mutableStateOf(false) }
+
     LaunchedEffect(device) {
-        Log.e("Bluetooth", "LaunchedEffect1 triggered with device: $device")
-        if (device != null) {
-            Log.e("Bluetooth", "LaunchedEffect2 triggered with device: $device")
-            val services = bluetoothHandler.getServices()
-            if (services.isNotEmpty()) {
-                val values = bluetoothHandler.readAllCharacteristics(
-                    services,
-                    BluetoothUUIDs.serviceAndCharacteristicUUIDs
-                )
-                bluetoothViewModel.updateCharacteristicValues(values)
-                bluetoothHandler.handleDeviceActions(services, device)
+        Log.e("Bluetooth", "LaunchedEffect triggered with device: $device")
+        if (!isEffectTriggered.value) {
+            isEffectTriggered.value = true
+            if (device != null) {
+                val services = bluetoothHandler.getServices()
+                if (services.isNotEmpty()) {
+                    bluetoothHandler.updateDateTime(services)
+                    val values = bluetoothHandler.readAllCharacteristics(
+                        services,
+                        BluetoothUUIDs.serviceAndCharacteristicUUIDs
+                    )
+                    Log.e("Bluetooth", "1")
+                    bluetoothViewModel.updateCharacteristicValues(values)
+                    Log.e("Bluetooth", "2")
+                    bluetoothHandler.handleDeviceActions(services, device)
+                    Log.e("Bluetooth", "3")
+                }
             }
         }
     }
 
-    var devName = bluetoothHandler.getConnectedDeviceName()
-    var devTyp = "no device"
-    if (device != null) {
-        if (device == Thermometer()) {
-            devTyp = "termometr"
+    if (device != null && characteristicValues.size != 0) {
+        device?.let { device ->
+            when (device) {
+                is Thermometer -> device.setName(stringResource(R.string.thermometer_name))
+                is WeightScale -> device.setName(stringResource(R.string.weight_scale_name))
+                is BloodPressureMonitor -> device.setName(stringResource(R.string.bpm_name))
+            }
         }
         val parsedData = device?.parseData(characteristicValue)
+        Log.e("Bluetooth", "4")
+        if (parsedData != null) {
+            Log.e("Bluetooth", "Char values: $characteristicValues")
+            bluetoothViewModel.saveDeviceAndMeasurement(characteristicValues, device!!, devName, parsedData,
+                stringResource(R.string.unknown), stringResource(R.string.no_info),
+                stringResource(R.string.thermometer_name), stringResource(R.string.weight_scale_name), stringResource(R.string.bpm_name),
+                stringResource(R.string.temperature_name), stringResource(R.string.pulse_name), stringResource(R.string.time_of_measurement)
+                )
+            Log.e("Bluetooth", "5")
+        }
 
+        //NEW
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        )
-        {
+            modifier = Modifier.fillMaxHeight()
+                .verticalScroll(rememberScrollState())
+        ) {
             Card(
                 modifier = Modifier
-                    .wrapContentSize(Alignment.Center),
+                    .padding(16.dp)
+                    .fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
             ) {
-                Text(
-                    text = stringResource(
-                        R.string.dev_name,
-                        devName ?: stringResource(R.string.no_data)
-                    ),
-                    style = Typography.displayMedium
-                )
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.dev_name,
+                            devName ?: stringResource(R.string.no_data)
+                        ),
+                        style = Typography.displayLarge.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
 
-                Text(
-                    text = stringResource(
-                        R.string.dev_type,
-                        devTyp ?: stringResource(R.string.no_data)
-                    ),
-                    style = Typography.bodyMedium
-                )
-
+                    Text(
+                        text = stringResource(
+                            R.string.dev_type,
+                            device!!.name ?: stringResource(R.string.no_data)
+                        ),
+                        style = Typography.displayMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    //Divider(thickness = dimensionResource(R.dimen.thickness_divider))
+                }
                 device?.getDisplayData()?.forEach { key ->
                     Text(
                         text = "$key: ${parsedData?.get(key) ?: stringResource(R.string.no_data)}",
-                        style = Typography.bodyMedium
+                        style = Typography.displayMedium
                     )
                 }
+                Divider(thickness = dimensionResource(R.dimen.thickness_divider), modifier = Modifier.height(0.dp))
             }
-
             CharacteristicRead(
-                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+                modifier = Modifier.padding(dimensionResource(R.dimen.padding_Vsmall)),
                 name = stringResource(R.string.manufacturer),
                 value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER]
                     ?: stringResource(R.string.no_data)
             )
             CharacteristicRead(
-                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+                modifier = Modifier.padding(dimensionResource(R.dimen.padding_Vsmall)),
                 name = stringResource(R.string.device_model),
                 value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER]
                     ?: stringResource(R.string.no_data)
             )
             CharacteristicRead(
-                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+                modifier = Modifier.padding(dimensionResource(R.dimen.padding_Vsmall)),
                 name = stringResource(R.string.battery_level),
                 value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL]
                     ?: stringResource(R.string.no_data)
             )
         }
 
+        // OLD
+//        Column(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(16.dp),
+//            verticalArrangement = Arrangement.Center,
+//            horizontalAlignment = Alignment.CenterHorizontally
+//        )
+//        {
+//            Card(
+//                modifier = Modifier
+//                    .wrapContentSize(Alignment.Center),
+//                elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+//            ) {
+//                Text(
+//                    text = stringResource(
+//                        R.string.dev_name,
+//                        devName ?: stringResource(R.string.no_data)
+//                    ),
+//                    style = Typography.displayMedium
+//                )
+//
+//                Text(
+//                    text = stringResource(
+//                        R.string.dev_type,
+//                        device!!.name ?: stringResource(R.string.no_data)
+//                    ),
+//                    style = Typography.bodyMedium
+//                )
+//
+//                device?.getDisplayData()?.forEach { key ->
+//                    Text(
+//                        text = "$key: ${parsedData?.get(key) ?: stringResource(R.string.no_data)}",
+//                        style = Typography.bodyMedium
+//                    )
+//                }
+//            }
+//
+//            CharacteristicRead(
+//                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+//                name = stringResource(R.string.manufacturer),
+//                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER]
+//                    ?: stringResource(R.string.no_data)
+//            )
+//            CharacteristicRead(
+//                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+//                name = stringResource(R.string.device_model),
+//                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER]
+//                    ?: stringResource(R.string.no_data)
+//            )
+//            CharacteristicRead(
+//                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
+//                name = stringResource(R.string.battery_level),
+//                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL]
+//                    ?: stringResource(R.string.no_data)
+//            )
+//        }
+
     } else {
-        //bluetoothHandler.connectToGattServer(device)
         Text(stringResource(R.string.no_dev_connected))
     }
 }
@@ -294,11 +442,13 @@ fun CharacteristicRead(
                 if (value.length > 2) {
                     Text(
                         text = hexToString(value),
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
                         style = Typography.bodyMedium
                     )
                 } else {
                     Text(
                         text = value, //.hex
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
                         style = Typography.bodyMedium
                     )
                 }

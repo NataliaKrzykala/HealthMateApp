@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    id("kotlin-kapt")
+    //id("com.google.devtools.ksp") version "1.9.0-1.0.13"
 }
 
 android {
@@ -9,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.healthmate"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -67,6 +69,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
     implementation("com.airbnb.android:lottie-compose:6.4.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation(libs.play.services.tasks)
+    implementation(libs.androidx.runtime.livedata)
 
 
     testImplementation(libs.junit)
@@ -79,5 +83,31 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    val room_version = "2.6.1"
 
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+
+    // To use Kotlin annotation processing tool (kapt)
+    kapt("androidx.room:room-compiler:$room_version")
+    // To use Kotlin Symbol Processing (KSP)
+    //ksp("androidx.room:room-compiler:$room_version")
+
+    // optional - Kotlin Extensions and Coroutines support for Room
+    implementation("androidx.room:room-ktx:$room_version")
+
+    // optional - RxJava2 support for Room
+    implementation("androidx.room:room-rxjava2:$room_version")
+
+    // optional - RxJava3 support for Room
+    implementation("androidx.room:room-rxjava3:$room_version")
+
+    // optional - Guava support for Room, including Optional and ListenableFuture
+    implementation("androidx.room:room-guava:$room_version")
+
+    // optional - Test helpers
+    testImplementation("androidx.room:room-testing:$room_version")
+
+    // optional - Paging 3 Integration
+    implementation("androidx.room:room-paging:$room_version")
 }

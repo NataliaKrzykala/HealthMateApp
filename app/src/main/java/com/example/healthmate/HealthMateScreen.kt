@@ -148,13 +148,14 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.MainPanel.name) {
                 MainPanelScreen(
-                    rememberedDevices = DataSource.rememberedDevices,
+                    //rememberedDevices = DataSource.rememberedDevices,
                     onStatisticsButtonClicked = {
                         viewModel.selectDevice(it)
                         navController.navigate(HealthMateScreen.Statistics.name) },
                     onAccountButtonClicked = { navController.navigate(HealthMateScreen.Account.name) },
                     onMeasureButtonClicked = { navController.navigate(HealthMateScreen.Measure.name) },
-                    modifier = Modifier.fillMaxHeight()
+                    modifier = Modifier.fillMaxHeight(),
+                    bluetoothViewModel = bluetoothViewModel
                 )
             }
             composable(route = HealthMateScreen.Account.name) {
@@ -178,7 +179,8 @@ fun HealthMateApp(
             composable(route = HealthMateScreen.Statistics.name) {
                 StatisticsScreen(
                     healthMateUiState = uiState,
-                    modifier = Modifier.fillMaxHeight()
+                    modifier = Modifier.fillMaxHeight(),
+                    bluetoothViewModel = bluetoothViewModel
                 )
             }
         }

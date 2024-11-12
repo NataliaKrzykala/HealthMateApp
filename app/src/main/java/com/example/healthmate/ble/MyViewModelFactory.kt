@@ -2,11 +2,17 @@ package com.example.healthmate.ble
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.healthmate.data.HealthMateRepository
 
-class BluetoothViewModelFactory(private val bluetoothHandler: BluetoothHandler) : ViewModelProvider.Factory {
+class HealthMateViewModelFactory(
+    private val bluetoothHandler: BluetoothHandler,
+    private val repository: HealthMateRepository
+) : ViewModelProvider.Factory {
+
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(BluetoothViewModel::class.java)) {
-            return BluetoothViewModel(bluetoothHandler) as T
+            @Suppress("UNCHECKED_CAST")
+            return BluetoothViewModel(bluetoothHandler, repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

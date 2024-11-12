@@ -1,5 +1,7 @@
 package com.example.healthmate.ui
 
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.Calendar
 data class TemperatureFlag(
     val isTemperatureInCelsius: Boolean, // True jeśli temperatura w Celsjuszach, False jeśli w Fahrenheitach
@@ -31,7 +33,7 @@ fun parseTemperatureFromByte(byteArray: ByteArray?): Float? {
     return result.toFloat()
 }
 
-fun parseTimestampFromByte(byteArray: ByteArray?): Calendar? {
+fun parseTimestampFromByte(byteArray: ByteArray?): LocalDateTime? {
     if(byteArray == null) return null
 
     val year = ((byteArray[1].toInt() and 0xFF) shl 8) or (byteArray[0].toInt() and 0xFF)
@@ -41,10 +43,40 @@ fun parseTimestampFromByte(byteArray: ByteArray?): Calendar? {
     val minute = byteArray[5].toInt() and 0xFF
     val second = byteArray[6].toInt() and 0xFF
 
-    val calendar = Calendar.getInstance()
-    calendar.set(year, month, day, hour, minute, second)
+    val parsedDate: LocalDateTime = LocalDateTime.of(year, month, day, hour, minute, second)
 
-    return calendar
+    //val calendar = Calendar.getInstance()
+    //calendar.set(year, month, day, hour, minute, second)
+
+    return parsedDate
+}
+
+fun convertTimestampToByteArray(dateTime: LocalDateTime): ByteArray {
+    val year = dateTime.year
+    val month = dateTime.monthValue
+    val day = dateTime.dayOfMonth
+    val hour = dateTime.hour
+    val minute = dateTime.minute
+    val second = dateTime.second
+
+    // Tworzenie tablicy bajtów o odpowiednim rozmiarze
+    val byteArray = ByteArray(8) // 2 + 1 + 1 + 1 + 1 + 1 = 7 bajtów
+
+    // Konwersja roku (2 bajty w LSB)
+    byteArray[0] = (year and 0xFF).toByte()        // LSB
+    byteArray[1] = (year shr 8 and 0xFF).toByte() // MSB
+    // Miesiąc
+    byteArray[2] = month.toByte()
+    // Dzień
+    byteArray[3] = day.toByte()
+    // Godzina
+    byteArray[4] = hour.toByte()
+    // Minuta
+    byteArray[5] = minute.toByte()
+    // Sekunda
+    byteArray[6] = second.toByte()
+
+    return byteArray
 }
 
 /*fun parseMeasurePlaceFromByte(measurePlaceByte: Byte?): String? {
