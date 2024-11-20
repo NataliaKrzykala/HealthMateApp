@@ -117,7 +117,7 @@ fun HealthMateApp(
             )
         }
     ) { innerPadding ->
-        val uiState by viewModel.uiState.collectAsState()
+        val uiState by bluetoothViewModel.uiState.collectAsState()
 
         NavHost(
             navController = navController,
@@ -136,6 +136,7 @@ fun HealthMateApp(
             composable(route = HealthMateScreen.LogIn.name) {
                 LogInScreen(
                     onLogInButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
+                    bluetoothViewModel = bluetoothViewModel,
                     modifier = Modifier.fillMaxHeight()
                 )
             }
@@ -143,14 +144,17 @@ fun HealthMateApp(
                 RegisterScreen(
                     onSubmitButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
                     /*onCancelButtonClicked = { cancelAndNavigateToStart(viewModel, navController) },*/
+                    bluetoothViewModel = bluetoothViewModel,
                     modifier = Modifier.fillMaxHeight()
                 )
             }
             composable(route = HealthMateScreen.MainPanel.name) {
                 MainPanelScreen(
                     //rememberedDevices = DataSource.rememberedDevices,
+                    healthMateUiState = uiState,
                     onStatisticsButtonClicked = {
-                        viewModel.selectDevice(it)
+                        bluetoothViewModel.selectDevice(it)
+                        //bluetoothViewModel.loggedUser(it),
                         navController.navigate(HealthMateScreen.Statistics.name) },
                     onAccountButtonClicked = { navController.navigate(HealthMateScreen.Account.name) },
                     onMeasureButtonClicked = { navController.navigate(HealthMateScreen.Measure.name) },
@@ -160,7 +164,7 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.Account.name) {
                 AccountScreen(
-                    onLogOutButtonClicked = { cancelAndNavigateToStart(viewModel, navController) },
+                    onLogOutButtonClicked = { cancelAndNavigateToStart(navController) }, //viewModel
                     modifier = Modifier.fillMaxHeight()
                 )
             }
@@ -191,7 +195,8 @@ fun HealthMateApp(
 
 
 private fun cancelAndNavigateToStart(
-    viewModel: HealthMateViewModel,
+    //viewModel: HealthMateViewModel,
+    /*TODO: add resetViewModel */
     navController: NavHostController
 ) {
     /*viewModel.resetViewModel()*/

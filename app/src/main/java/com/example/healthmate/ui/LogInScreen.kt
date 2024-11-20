@@ -46,15 +46,18 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.healthmate.HealthMateApp
+import com.example.healthmate.ble.BluetoothViewModel
+import com.example.healthmate.data.HealthMateUiState
+import com.example.healthmate.data.Uzytkownik
 import com.example.healthmate.ui.theme.HealthMateTheme
 
 @Composable
 fun LogInScreen(
-    healthMateViewModel: HealthMateViewModel = viewModel(),
+    bluetoothViewModel: BluetoothViewModel,
     onLogInButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
 ){
-    val healthMateUiState by healthMateViewModel.uiState.collectAsState()
+    val healthMateUiState by bluetoothViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
     Column(
@@ -67,13 +70,12 @@ fun LogInScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         LogInLayout(
-            onUserLoginChanged = { healthMateViewModel.updateUserLogin(it) },
-            onUserPasswordChanged = { healthMateViewModel.updateUserPassword(it) },
-            username = healthMateViewModel.username,
-            password = healthMateViewModel.password,
-            onPasswordVisibilityToggle = { healthMateViewModel.togglePasswordVisibility() },
+            onUserLoginChanged = { bluetoothViewModel.updateUserLogin(it) },
+            onUserPasswordChanged = { bluetoothViewModel.updateUserPassword(it) },
+            username = bluetoothViewModel.username,
+            password = bluetoothViewModel.password,
+            onPasswordVisibilityToggle = { bluetoothViewModel.togglePasswordVisibility() },
             isPasswordVisible = healthMateUiState.isPasswordVisible,
-            /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
             isWrong = healthMateUiState.areCredentialsWrong,
             modifier = Modifier
                 .fillMaxWidth()
@@ -83,13 +85,27 @@ fun LogInScreen(
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                healthMateViewModel.isAuthenticationWrong()
-                val areCredentialsWrong = healthMateViewModel.uiState.value.areCredentialsWrong
-                if (!areCredentialsWrong) {
-                    onLogInButtonClicked()
-                } else {
-
-                }
+                bluetoothViewModel.attemptLogin(
+                    onSuccess = onLogInButtonClicked,
+                    onFailure = {
+                        bluetoothViewModel.resetLoginState()
+                    }
+                )
+//                bluetoothViewModel.isAuthenticationWrong()
+//                //val areCredentialsWrong = bluetoothViewModel.uiState.value.areCredentialsWrong
+//                if (!healthMateUiState.areCredentialsWrong) {
+//                    bluetoothViewModel.authenticateAndSetUser(
+//                        username = bluetoothViewModel.username,
+//                        onSuccess = {
+//                            onLogInButtonClicked()
+//                        },
+//                        onFailure = {
+//                            // Obsłuż błędne dane logowania, jeśli to konieczne
+//                        }
+//                    )
+//                } else {
+//
+//                }
             }
         ) {
             Text(text = stringResource(R.string.log_in))
@@ -215,7 +231,7 @@ fun LogInLayout(
     }
 }
 
-@Preview
+/*@Preview
 @Composable
 fun LogInPreview() {
     HealthMateTheme {
@@ -226,5 +242,5 @@ fun LogInPreview() {
                 .padding(dimensionResource(R.dimen.padding_medium))
         )
     }
-}
+}*/
 

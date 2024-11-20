@@ -244,22 +244,19 @@ fun BluetoothDetailsScreen(
             if (device != null) {
                 val services = bluetoothHandler.getServices()
                 if (services.isNotEmpty()) {
-                    bluetoothHandler.updateDateTime(services)
+                    //bluetoothHandler.updateDateTime(services)
                     val values = bluetoothHandler.readAllCharacteristics(
                         services,
                         BluetoothUUIDs.serviceAndCharacteristicUUIDs
                     )
-                    Log.e("Bluetooth", "1")
                     bluetoothViewModel.updateCharacteristicValues(values)
-                    Log.e("Bluetooth", "2")
                     bluetoothHandler.handleDeviceActions(services, device)
-                    Log.e("Bluetooth", "3")
                 }
             }
         }
     }
 
-    if (device != null && characteristicValues.size != 0) {
+    if (device != null && characteristicValues.isNotEmpty()) {
         device?.let { device ->
             when (device) {
                 is Thermometer -> device.setName(stringResource(R.string.thermometer_name))
@@ -268,7 +265,6 @@ fun BluetoothDetailsScreen(
             }
         }
         val parsedData = device?.parseData(characteristicValue)
-        Log.e("Bluetooth", "4")
         if (parsedData != null) {
             Log.e("Bluetooth", "Char values: $characteristicValues")
             bluetoothViewModel.saveDeviceAndMeasurement(characteristicValues, device!!, devName, parsedData,
@@ -276,7 +272,6 @@ fun BluetoothDetailsScreen(
                 stringResource(R.string.thermometer_name), stringResource(R.string.weight_scale_name), stringResource(R.string.bpm_name),
                 stringResource(R.string.temperature_name), stringResource(R.string.pulse_name), stringResource(R.string.time_of_measurement)
                 )
-            Log.e("Bluetooth", "5")
         }
 
         //NEW
@@ -342,64 +337,6 @@ fun BluetoothDetailsScreen(
                     ?: stringResource(R.string.no_data)
             )
         }
-
-        // OLD
-//        Column(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .padding(16.dp),
-//            verticalArrangement = Arrangement.Center,
-//            horizontalAlignment = Alignment.CenterHorizontally
-//        )
-//        {
-//            Card(
-//                modifier = Modifier
-//                    .wrapContentSize(Alignment.Center),
-//                elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
-//            ) {
-//                Text(
-//                    text = stringResource(
-//                        R.string.dev_name,
-//                        devName ?: stringResource(R.string.no_data)
-//                    ),
-//                    style = Typography.displayMedium
-//                )
-//
-//                Text(
-//                    text = stringResource(
-//                        R.string.dev_type,
-//                        device!!.name ?: stringResource(R.string.no_data)
-//                    ),
-//                    style = Typography.bodyMedium
-//                )
-//
-//                device?.getDisplayData()?.forEach { key ->
-//                    Text(
-//                        text = "$key: ${parsedData?.get(key) ?: stringResource(R.string.no_data)}",
-//                        style = Typography.bodyMedium
-//                    )
-//                }
-//            }
-//
-//            CharacteristicRead(
-//                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
-//                name = stringResource(R.string.manufacturer),
-//                value = characteristicValues[BluetoothUUIDs.UUID_MANUFACTURER]
-//                    ?: stringResource(R.string.no_data)
-//            )
-//            CharacteristicRead(
-//                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
-//                name = stringResource(R.string.device_model),
-//                value = characteristicValues[BluetoothUUIDs.UUID_MODEL_NUMBER]
-//                    ?: stringResource(R.string.no_data)
-//            )
-//            CharacteristicRead(
-//                modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)),
-//                name = stringResource(R.string.battery_level),
-//                value = characteristicValues[BluetoothUUIDs.UUID_BATTERY_LEVEL]
-//                    ?: stringResource(R.string.no_data)
-//            )
-//        }
 
     } else {
         Text(stringResource(R.string.no_dev_connected))

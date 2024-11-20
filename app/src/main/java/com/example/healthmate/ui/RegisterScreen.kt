@@ -40,15 +40,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.healthmate.R
+import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ui.theme.HealthMateTheme
 
 @Composable
 fun RegisterScreen(
-    healthMateViewModel: HealthMateViewModel = viewModel(),
+    //healthMateViewModel: HealthMateViewModel = viewModel(),
+    bluetoothViewModel: BluetoothViewModel,
     onSubmitButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
 ){
-    val healthMateUiState by healthMateViewModel.uiState.collectAsState()
+    val healthMateUiState by bluetoothViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
     Column(
@@ -61,13 +63,13 @@ fun RegisterScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         RegisterLayout(
-            onUserNameChanged = { healthMateViewModel.updateUserName(it) },
-            onUserLoginChanged = { healthMateViewModel.updateUserLoginRegister(it) },
-            onUserPasswordChanged = { healthMateViewModel.updateUserPasswordRegister(it) },
-            name = healthMateViewModel.name,
-            username = healthMateViewModel.usernameRegister,
-            password = healthMateViewModel.passwordRegister,
-            onPasswordVisibilityToggle = { healthMateViewModel.togglePasswordVisibility() },
+            onUserNameChanged = { bluetoothViewModel.updateUserName(it) },
+            onUserLoginChanged = { bluetoothViewModel.updateUserLoginRegister(it) },
+            onUserPasswordChanged = { bluetoothViewModel.updateUserPasswordRegister(it) },
+            name = bluetoothViewModel.name,
+            username = bluetoothViewModel.usernameRegister,
+            password = bluetoothViewModel.passwordRegister,
+            onPasswordVisibilityToggle = { bluetoothViewModel.togglePasswordVisibility() },
             isPasswordVisible = healthMateUiState.isPasswordVisible,
             /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
             isWrong = healthMateUiState.loginAlreadyExists,
@@ -79,10 +81,19 @@ fun RegisterScreen(
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                healthMateViewModel.isLoginWrong()
-                val loginAlreadyExists = healthMateViewModel.uiState.value.loginAlreadyExists
+                bluetoothViewModel.isLoginWrong()
+                val loginAlreadyExists = bluetoothViewModel.uiState.value.loginAlreadyExists
                 if (!loginAlreadyExists) { //!healthMateUiState.loginAlreadyExists
-                    onSubmitButtonClicked()
+                    bluetoothViewModel.addNewUser()
+                    bluetoothViewModel.authenticateAndSetUser(
+                        username = bluetoothViewModel.username,
+                        onSuccess = {
+                            onSubmitButtonClicked()
+                        },
+                        onFailure = {
+                            // Obsłuż błędne dane logowania, jeśli to konieczne
+                        }
+                    )
                 } else {
 
                 }
@@ -234,7 +245,7 @@ fun RegisterLayout(
     }
 }
 
-@Preview
+/*@Preview
 @Composable
 fun RegisterPreview() {
     HealthMateTheme {
@@ -245,4 +256,4 @@ fun RegisterPreview() {
                 .padding(dimensionResource(R.dimen.padding_medium))
         )
     }
-}
+}*/

@@ -10,12 +10,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@Database(entities = [Urzadzenie::class, Pomiar::class, ParametrPomiaru::class], version = 3, exportSchema = false)
+@Database(entities = [Urzadzenie::class, Pomiar::class, ParametrPomiaru::class, Uzytkownik::class], version = 4, exportSchema = false)
 public abstract class HealthMateRoomDatabase : RoomDatabase() {
 
     abstract fun urzadzenieDAO(): UrzadzenieDAO
     abstract fun pomiarDAO(): PomiarDAO
     abstract fun parametrPomiaruDAO(): ParametrPomiaruDAO
+    abstract fun uzytkownikDAO(): UzytkownikDAO
 
     companion object {
         // Singleton prevents multiple instances of database opening at the
@@ -60,20 +61,15 @@ public abstract class HealthMateRoomDatabase : RoomDatabase() {
                 super.onCreate(db)
                 INSTANCE?.let { database ->
                     scope.launch {
-                        populateDatabase(database.pomiarDAO(), database.urzadzenieDAO(), database.parametrPomiaruDAO())
+                        populateDatabase(database.pomiarDAO(), database.urzadzenieDAO(), database.parametrPomiaruDAO(), database.uzytkownikDAO())
                     }
                 }
             }
 
-            suspend fun populateDatabase(pomiarDAO: PomiarDAO, urzadzenieDAO: UrzadzenieDAO, parametrPomiaruDAO: ParametrPomiaruDAO) {
+            suspend fun populateDatabase(pomiarDAO: PomiarDAO, urzadzenieDAO: UrzadzenieDAO, parametrPomiaruDAO: ParametrPomiaruDAO, uzytkownikDAO: UzytkownikDAO) {
                 // Delete all content here.
                 //wordDao.deleteAll()
 
-                // Add sample words.
-                var urzadzenie = Urzadzenie(nazwa = "urzadzenie1", producent = "A&D", rodzaj = "termometr", model = "model1")
-                urzadzenieDAO.insertSensor(urzadzenie)
-
-                // TODO: Add your own words!
             }
         }
 

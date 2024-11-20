@@ -8,5 +8,5 @@ class HMApp : Application() {
     val applicationScope = CoroutineScope(SupervisorJob())
 
     val database by lazy { HealthMateRoomDatabase.getDatabase(this, applicationScope) }
-    val repository by lazy { HealthMateRepository(database.urzadzenieDAO(), database.pomiarDAO(), database.parametrPomiaruDAO()) }
+    val repository by lazy { HealthMateRepository(database.urzadzenieDAO(), database.pomiarDAO(), database.parametrPomiaruDAO(), database.uzytkownikDAO()) }
 }

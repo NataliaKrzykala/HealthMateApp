@@ -187,7 +187,8 @@ class BluetoothHandler(
     //endregion
 
     //region Enable indication functions (write descriptor, enable indication/notifications)
-    fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
+    suspend fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
+        updateDateTime(services)
         when (deviceType) {
             is Thermometer -> {
                 val characteristic = services
@@ -348,6 +349,7 @@ class BluetoothHandler(
     suspend fun updateDateTime(services: List<BluetoothGattService>) {
         val date = LocalDateTime.now()
         val byteArray = convertTimestampToByteArray(date)
+        Log.e(TAG, "Saving a timestamp to a device: $date = $byteArray")
 
         when {
             services.any { it.uuid == BluetoothUUIDs.UUID_THERMOMETER_SERVICE } -> writeCharacteristic(services, BluetoothUUIDs.UUID_THERMOMETER_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
@@ -494,6 +496,7 @@ class BluetoothHandler(
                 Log.i(TAG, "Services discovered.")
                 onServicesDiscovered?.invoke(gatt.services) //???
 
+                //updateDateTime(gatt.services)
                 handleDeviceConnection(gatt)
 
             } else {

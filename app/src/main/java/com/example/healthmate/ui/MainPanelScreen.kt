@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.example.healthmate.R
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.data.DataSource
+import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.data.Urzadzenie
 import com.example.healthmate.ui.theme.HealthMateTheme
 import com.example.healthmate.ui.theme.Typography
@@ -41,6 +42,7 @@ import com.example.healthmate.ui.theme.Typography
 fun MainPanelScreen(
     //rememberedDevices: List<Pair<Int, Int>>,
     onStatisticsButtonClicked: (Urzadzenie) -> Unit,
+    healthMateUiState: HealthMateUiState,
     onAccountButtonClicked: () -> Unit,
     onMeasureButtonClicked: () -> Unit,
     modifier: Modifier = Modifier,
@@ -48,6 +50,8 @@ fun MainPanelScreen(
 ) {
     //bluetoothViewModel.clearDatabase()
     val sensors = bluetoothViewModel.allSensors.collectAsState(initial = emptyList()).value
+    val loggedUser = healthMateUiState.user.imie
+    bluetoothViewModel.resetLoginState()
     //val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
     Column(
@@ -60,6 +64,17 @@ fun MainPanelScreen(
                 .fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Cześć $loggedUser !",
+                    style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
             Box(
                 modifier = Modifier
                     .padding(16.dp)

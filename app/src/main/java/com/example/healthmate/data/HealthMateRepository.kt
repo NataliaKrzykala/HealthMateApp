@@ -6,12 +6,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
-class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val pomiarDAO: PomiarDAO, private val parametrPomiaruDAO: ParametrPomiaruDAO) {
+class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val pomiarDAO: PomiarDAO, private val parametrPomiaruDAO: ParametrPomiaruDAO, private val uzytkownikDAO: UzytkownikDAO) {
 
     suspend fun clearDatabase() {
-        urzadzenieDAO.clearAllSensors() // Wyczyści tabelę urządzeń
-        pomiarDAO.clearAllPomiary() // Wyczyści tabelę pomiarów
-        parametrPomiaruDAO.clearAllParametryPomiaru() // Wyczyści tabelę parametrów pomiaru
+        urzadzenieDAO.clearAllSensors()
+        pomiarDAO.clearAllPomiary()
+        parametrPomiaruDAO.clearAllParametryPomiaru()
+        uzytkownikDAO.clearAllUzytkownik()
     }
 
     //region Sensor-related operations
@@ -42,8 +43,8 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
 
     //region Measurement-related operations
     suspend fun addMeasurement(pomiar: Pomiar): Long {
-            val pomiarId = pomiarDAO.insertMeasurement(pomiar)
-            return pomiarId
+        val pomiarId = pomiarDAO.insertMeasurement(pomiar)
+        return pomiarId
     }
 
     suspend fun getMeasurementsBySensor(urzadzenieId: Int): List<Pomiar> {
@@ -87,5 +88,22 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
 //            measurementParameterDao.deleteParametersByMeasurementId(measurementId)
 //        }
 //    }
+    //endregion
+
+    //region User-related operations
+    suspend fun addUser(uzytkownik: Uzytkownik): Long {
+        val existingUser = uzytkownikDAO.getUserByLogin(uzytkownik.login)
+        return if (existingUser == null) {
+             val userId = uzytkownikDAO.insertUzytkownik(uzytkownik)
+             userId
+        }else{
+            existingUser.uzytkownikId
+        }
+    }
+    suspend fun getUserByLogin(login: String): Uzytkownik? {
+        return withContext(Dispatchers.IO) {
+            uzytkownikDAO.getUserByLogin(login)
+        }
+    }
     //endregion
 }

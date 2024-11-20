@@ -58,7 +58,7 @@ interface PomiarDAO {
 
 @Dao
 interface ParametrPomiaruDAO {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMeasurementParameter(parametrPomiaru: ParametrPomiaru)
 
     @Query("SELECT * FROM ParametrPomiaru WHERE pomiarId = :pomiarId")
@@ -69,4 +69,17 @@ interface ParametrPomiaruDAO {
 
     //@Query("DELETE FROM ParametrPomiaru WHERE pomiarId = :pomiarId")
     //suspend fun deleteParametersByMeasurementId(pomiarId: Int)
+}
+
+@Dao
+interface UzytkownikDAO {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertUzytkownik(uzytkownik: Uzytkownik): Long
+
+    @Query("SELECT * FROM Uzytkownik WHERE login = :login")
+    suspend fun getUserByLogin(login: String): Uzytkownik
+
+    @Query("DELETE FROM Uzytkownik")
+    suspend fun clearAllUzytkownik()
+
 }
