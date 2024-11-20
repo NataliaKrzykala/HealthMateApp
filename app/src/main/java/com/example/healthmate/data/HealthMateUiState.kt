@@ -6,5 +6,4 @@ data class HealthMateUiState (
     val isPasswordVisible: Boolean = false,
     val device: Urzadzenie = Urzadzenie(1, "null", "null", "null", "null"),
     val user: Uzytkownik = Uzytkownik(imie = "null", login = "null", haslo = "null")
-    //val rememberedDevices: List<String> = listOf()
 )

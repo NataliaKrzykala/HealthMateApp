@@ -88,24 +88,9 @@ fun LogInScreen(
                 bluetoothViewModel.attemptLogin(
                     onSuccess = onLogInButtonClicked,
                     onFailure = {
-                        bluetoothViewModel.resetLoginState()
+                        //bluetoothViewModel.resetLoginState()
                     }
                 )
-//                bluetoothViewModel.isAuthenticationWrong()
-//                //val areCredentialsWrong = bluetoothViewModel.uiState.value.areCredentialsWrong
-//                if (!healthMateUiState.areCredentialsWrong) {
-//                    bluetoothViewModel.authenticateAndSetUser(
-//                        username = bluetoothViewModel.username,
-//                        onSuccess = {
-//                            onLogInButtonClicked()
-//                        },
-//                        onFailure = {
-//                            // Obsłuż błędne dane logowania, jeśli to konieczne
-//                        }
-//                    )
-//                } else {
-//
-//                }
             }
         ) {
             Text(text = stringResource(R.string.log_in))
@@ -122,7 +107,6 @@ fun LogInLayout(
     password: String,
     onPasswordVisibilityToggle: () -> Unit,
     isPasswordVisible: Boolean,
-    /*onKeyboardDone: () -> Unit,*/
     isWrong: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -162,11 +146,7 @@ fun LogInLayout(
                     ),
                     onValueChange = onUserLoginChanged,
                     label = {
-                        /*if (isWrong) {
-                        Text(stringResource(R.string.wrong_username))
-                    } else {*/
                         Text(stringResource(R.string.enter_username))
-                        /*}*/
                     },
                     leadingIcon = {
                         Icon(
@@ -206,9 +186,7 @@ fun LogInLayout(
                             contentDescription = stringResource(R.string.password)
                         )
                     },
-                    //visualTransformation = PasswordVisualTransformation(),
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    //visualTransformation = PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = onPasswordVisibilityToggle) {
                             Icon(

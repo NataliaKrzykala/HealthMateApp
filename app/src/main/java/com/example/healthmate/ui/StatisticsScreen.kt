@@ -60,7 +60,6 @@ fun StatisticsScreen(
     modifier: Modifier = Modifier,
     bluetoothViewModel: BluetoothViewModel
 ) {
-    //val resources = LocalContext.current.resources
     var expanded by remember { mutableStateOf(false) }
 
     val selectedDevice = healthMateUiState.device

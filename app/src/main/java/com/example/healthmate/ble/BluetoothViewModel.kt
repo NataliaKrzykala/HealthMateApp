@@ -283,141 +283,69 @@ private val repository: HealthMateRepository
         passwordRegister = passwordInput
     }
 
+    fun togglePasswordVisibility() {
+        val updatedUiState = _uiState.value.copy(isPasswordVisible = !_uiState.value.isPasswordVisible)
+        _uiState.value = updatedUiState
+    }
+
     suspend fun isAuthenticationWrong(): Boolean {
         val user = repository.getUserByLogin(username)
+
         val updatedUiState = if (user != null && password == user.haslo) {
             _uiState.value.copy(areCredentialsWrong = false)
         } else {
             _uiState.value.copy(areCredentialsWrong = true)
         }
         _uiState.value = updatedUiState
-        Log.e(TAG, "ARE CREDENTIALS WRONG = ${uiState.value.areCredentialsWrong}")
+
         return updatedUiState.areCredentialsWrong
     }
 
-//    fun isAuthenticationWrong() {
-//        viewModelScope.launch {
-//            val user0 = Uzytkownik(
-//                imie = "admin",
-//                login = "0",
-//                haslo = "0"
-//            )
-//            //val user0Id = repository.addUser(user0)
-//            //Log.e(TAG, "Added a default user")
-//
-//            val user = repository.getUserByLogin(username)
-//
-//            val updatedUiState = if (user != null && password.equals(user.haslo)) {
-//                _uiState.value.copy(areCredentialsWrong = false)
-//
-//                /*
-//                .also {
-//                    loggedUser(user)
-//                }
-//                 */
-//                //loggedUser(user)
-//            } else {
-//                _uiState.value.copy(areCredentialsWrong = true)
-//            }
-//            _uiState.value = updatedUiState
-//            Log.e(TAG, "ARE CREDENTIALS WRONG = ${uiState.value.areCredentialsWrong}")
-//        }
-//    }
-
-    fun isLoginWrong(){
-        viewModelScope.launch {
-            val user = repository.getUserByLogin(usernameRegister)
-
-            val updatedUiState = if (user != null && usernameRegister.equals(user.login)) {
-                /*_uiState.update { currentState ->
-                    currentState.copy(loginAlreadyExists = true)
-                }*/
-                //HealthMateUiState(loginAlreadyExists = true)
-                _uiState.value.copy(loginAlreadyExists = true)
-            } else {
-                /*_uiState.update { currentState ->
-                    currentState.copy(loginAlreadyExists = false)
-                }*/
-                //HealthMateUiState(loginAlreadyExists = false)
-                _uiState.value.copy(loginAlreadyExists = false)
-            }
-            _uiState.value = updatedUiState
-        }
-    }
-
-//    fun attemptLogin(onSuccess: () -> Unit, onFailure: () -> Unit) {
-//        viewModelScope.launch {
-//            _uiState.value = _uiState.value.copy(areCredentialsWrong = false)
-//            isAuthenticationWrong()
-//            Log.e(TAG, "ARE CREDS WRONG IN attemptLogin: ${uiState.value.areCredentialsWrong}")
-//
-//            val isWrong = uiState.value.areCredentialsWrong
-//            Log.e(TAG, "ARE CREDS WRONG IN attemptLogin2: ${uiState.value.areCredentialsWrong}")
-//            if (!isWrong) {
-//                authenticateAndSetUser(
-//                    username = username,
-//                    onSuccess = {
-//                        // Po sukcesie resetuj pola logowania
-//                        username = ""
-//                        password = ""
-//                        onSuccess()
-//                    },
-//                    onFailure = onFailure
-//                )
-//            } else {
-//                // Resetujemy tylko dane hasła
-//                password = ""
-//                onFailure()
-//            }
-//        }
-//    }
-
     fun attemptLogin(onSuccess: () -> Unit, onFailure: () -> Unit) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(areCredentialsWrong = false)
-
-            val areCredentialsWrong = isAuthenticationWrong() // Teraz jest suspend i zwraca wynik.
-            Log.e(TAG, "ARE CREDS WRONG IN attemptLogin: $areCredentialsWrong")
+            val areCredentialsWrong = isAuthenticationWrong()
 
             if (!areCredentialsWrong) {
-                authenticateAndSetUser(
-                    username = username,
-                    onSuccess = {
-                        // Po sukcesie resetuj pola logowania
-                        username = ""
-                        password = ""
-                        onSuccess()
-                    },
-                    onFailure = onFailure
-                )
+                val user = repository.getUserByLogin(username)
+                if (user != null) {
+                    loggedUser(user) // Ustaw jako zalogowanego
+                    onSuccess()
+                }
             } else {
-                // Resetujemy tylko dane hasła
+                username = ""
                 password = ""
                 onFailure()
             }
         }
     }
 
-    fun resetLoginState() {
-        _uiState.value = _uiState.value.copy(areCredentialsWrong = false)
-        username = ""
-        password = ""
+    suspend fun isLoginWrong(): Boolean{
+        val user = repository.getUserByLogin(usernameRegister)
+
+        val updatedUiState = if (user != null && usernameRegister.equals(user.login)) {
+            _uiState.value.copy(loginAlreadyExists = true)
+        } else {
+            _uiState.value.copy(loginAlreadyExists = false)
+        }
+        _uiState.value = updatedUiState
+
+        return updatedUiState.loginAlreadyExists
     }
 
-
-
-    fun authenticateAndSetUser(username: String, onSuccess: () -> Unit, onFailure: () -> Unit) {
+    fun attemptRegistration(onSuccess: () -> Unit, onFailure: () -> Unit) {
         viewModelScope.launch {
-            val user = repository.getUserByLogin(username)
-            if (user != null) {
-                loggedUser(user) // Ustaw jako zalogowanego
-                onSuccess()      // Wywołaj sukces
+            val loginAlreadyExists = isLoginWrong()
+
+            if (!loginAlreadyExists) {
+                addNewUser()
+                onSuccess()
             } else {
-                onFailure()      // Wywołaj błąd
+                usernameRegister = ""
+                passwordRegister = ""
+                onFailure()
             }
         }
     }
-
 
     fun addNewUser() {
         viewModelScope.launch {
@@ -427,20 +355,10 @@ private val repository: HealthMateRepository
                 haslo = passwordRegister
             )
             val userId = repository.addUser(user)
-            //loggedUser(user)
-        }
-    }
-
-    fun togglePasswordVisibility() {
-        val updatedUiState = _uiState.value.copy(isPasswordVisible = !_uiState.value.isPasswordVisible)
-        _uiState.value = updatedUiState
-    }
-
-    fun selectDevice(selectedDevice: Urzadzenie) {
-        _uiState.update { currentState ->
-            currentState.copy(
-                device = selectedDevice
-            )
+            if (userId != null) {
+                loggedUser(user)
+            } else {
+            }
         }
     }
 
@@ -451,5 +369,26 @@ private val repository: HealthMateRepository
             )
         }
         Log.e(TAG, "Updated a logged user: ${loggedUser.imie}")
+    }
+
+    fun selectDevice(selectedDevice: Urzadzenie) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                device = selectedDevice
+            )
+        }
+    }
+
+    fun resetLoginState() {
+        _uiState.value = _uiState.value.copy(areCredentialsWrong = false)
+        username = ""
+        password = ""
+    }
+
+    fun resetRegisterState() {
+        _uiState.value = _uiState.value.copy(loginAlreadyExists = false)
+        usernameRegister = ""
+        passwordRegister = ""
+        name = ""
     }
 }

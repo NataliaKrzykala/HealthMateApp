@@ -40,7 +40,6 @@ import com.example.healthmate.ui.theme.Typography
 
 @Composable
 fun MainPanelScreen(
-    //rememberedDevices: List<Pair<Int, Int>>,
     onStatisticsButtonClicked: (Urzadzenie) -> Unit,
     healthMateUiState: HealthMateUiState,
     onAccountButtonClicked: () -> Unit,
@@ -52,7 +51,7 @@ fun MainPanelScreen(
     val sensors = bluetoothViewModel.allSensors.collectAsState(initial = emptyList()).value
     val loggedUser = healthMateUiState.user.imie
     bluetoothViewModel.resetLoginState()
-    //val mediumPadding = dimensionResource(R.dimen.padding_medium)
+    bluetoothViewModel.resetRegisterState()
 
     Column(
         modifier = modifier,
@@ -123,7 +122,7 @@ fun MainPanelScreen(
 
 @Composable
 fun SelectRememberedDeviceButton(
-    labelResourceId: String, // @StringRes Int
+    labelResourceId: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -132,7 +131,7 @@ fun SelectRememberedDeviceButton(
         modifier = modifier.widthIn(min = 250.dp)
     ) {
         Text(
-            text = labelResourceId, //stringResource(labelResourceId),
+            text = labelResourceId,
             style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),)
     }
     Divider(thickness = dimensionResource(R.dimen.thickness_divider))

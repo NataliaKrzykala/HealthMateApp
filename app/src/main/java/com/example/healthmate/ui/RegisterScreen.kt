@@ -45,7 +45,6 @@ import com.example.healthmate.ui.theme.HealthMateTheme
 
 @Composable
 fun RegisterScreen(
-    //healthMateViewModel: HealthMateViewModel = viewModel(),
     bluetoothViewModel: BluetoothViewModel,
     onSubmitButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
@@ -71,7 +70,6 @@ fun RegisterScreen(
             password = bluetoothViewModel.passwordRegister,
             onPasswordVisibilityToggle = { bluetoothViewModel.togglePasswordVisibility() },
             isPasswordVisible = healthMateUiState.isPasswordVisible,
-            /*onKeyboardDone = { healthMateViewModel.checkUserGuess() },*/
             isWrong = healthMateUiState.loginAlreadyExists,
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,22 +79,12 @@ fun RegisterScreen(
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                bluetoothViewModel.isLoginWrong()
-                val loginAlreadyExists = bluetoothViewModel.uiState.value.loginAlreadyExists
-                if (!loginAlreadyExists) { //!healthMateUiState.loginAlreadyExists
-                    bluetoothViewModel.addNewUser()
-                    bluetoothViewModel.authenticateAndSetUser(
-                        username = bluetoothViewModel.username,
-                        onSuccess = {
-                            onSubmitButtonClicked()
-                        },
-                        onFailure = {
-                            // Obsłuż błędne dane logowania, jeśli to konieczne
-                        }
-                    )
-                } else {
-
-                }
+                bluetoothViewModel.attemptRegistration(
+                    onSuccess = onSubmitButtonClicked,
+                    onFailure = {
+                        //bluetoothViewModel.resetLoginState()
+                    }
+                )
             }
         ) {
             Text(text = stringResource(R.string.register))
