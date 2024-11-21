@@ -19,8 +19,14 @@ interface UrzadzenieDAO {
     @Query("SELECT * FROM urzadzenie WHERE nazwa = :nazwa")
     suspend fun getSensorByName(nazwa: String): Urzadzenie?
 
+    @Query("SELECT * FROM Urzadzenie WHERE nazwa = :nazwa AND uzytkownikId = :uzytkownikId")
+    suspend fun getDeviceByNameAndUserId(nazwa: String, uzytkownikId: Long): Urzadzenie?
+
     @Query("SELECT * FROM Urzadzenie")
     fun getAllSensors(): Flow<List<Urzadzenie>>
+
+    @Query("SELECT * FROM Urzadzenie WHERE uzytkownikId =:uzytkownikId")
+    fun getAllSensorsForUser(uzytkownikId: Long): Flow<List<Urzadzenie>>
 
     @Query("DELETE FROM Urzadzenie")
     suspend fun clearAllSensors()
@@ -42,6 +48,9 @@ interface PomiarDAO {
 
     @Query("DELETE FROM Pomiar")
     suspend fun clearAllPomiary()
+
+    @Query("SELECT EXISTS(SELECT 1 FROM Pomiar WHERE urzadzenieId = :urzadzenieId AND data = :data LIMIT 1)")
+    suspend fun doesMeasurementExist(urzadzenieId: Long, data: String): Boolean
 
     @Transaction
     @Query("""

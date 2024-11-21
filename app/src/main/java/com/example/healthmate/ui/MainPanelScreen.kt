@@ -1,6 +1,7 @@
 package com.example.healthmate.ui
 
 import android.bluetooth.BluetoothDevice
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -37,6 +39,7 @@ import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.data.Urzadzenie
 import com.example.healthmate.ui.theme.HealthMateTheme
 import com.example.healthmate.ui.theme.Typography
+import kotlin.math.log
 
 @Composable
 fun MainPanelScreen(
@@ -48,10 +51,20 @@ fun MainPanelScreen(
     bluetoothViewModel: BluetoothViewModel
 ) {
     //bluetoothViewModel.clearDatabase()
-    val sensors = bluetoothViewModel.allSensors.collectAsState(initial = emptyList()).value
-    val loggedUser = healthMateUiState.user.imie
+    //val sensors = bluetoothViewModel.allSensors.collectAsState(initial = emptyList()).value
+    val loggedUser = healthMateUiState.user
+    //Log.e("Logged User11111", "$loggedUser")
+
+    LaunchedEffect(loggedUser.uzytkownikId) {
+        bluetoothViewModel.loadSensorsForUser(loggedUser.uzytkownikId)
+    }
+
+    // Obserwuj stan czujników
+    val sensors = bluetoothViewModel.sensorsForUser.collectAsState(initial = emptyList()).value
+
     bluetoothViewModel.resetLoginState()
     bluetoothViewModel.resetRegisterState()
+    //bluetoothViewModel.resetSaveFlag()
 
     Column(
         modifier = modifier,
@@ -69,7 +82,7 @@ fun MainPanelScreen(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Cześć $loggedUser !",
+                    text = "Cześć ${loggedUser.imie}, twój id to ${loggedUser.uzytkownikId} !",
                     style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.align(Alignment.Center)
                 )

@@ -61,6 +61,7 @@ import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ble.Thermometer
 import com.example.healthmate.ble.WeightScale
+import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.ui.theme.Typography
 import kotlinx.coroutines.delay
 import java.util.UUID
@@ -70,7 +71,8 @@ import java.util.UUID
 fun MeasureScreen(
     modifier: Modifier = Modifier,
     bluetoothHandler: BluetoothHandler,
-    bluetoothViewModel: BluetoothViewModel
+    bluetoothViewModel: BluetoothViewModel,
+    healthMateUiState: HealthMateUiState
 ) {
     var showDetails by remember { mutableStateOf(false) }
     var services by remember { mutableStateOf<List<BluetoothGattService>>(emptyList()) }
@@ -80,10 +82,13 @@ fun MeasureScreen(
         showDetails = true
     }
 
+    //bluetoothViewModel.resetSaveFlag()
+
     if (showDetails) {
         BluetoothDetailsScreen(
             bluetoothHandler = bluetoothHandler,
-            bluetoothViewModel = bluetoothViewModel
+            bluetoothViewModel = bluetoothViewModel,
+            healthMateUiState = healthMateUiState
         ) {
             showDetails = false
         }
@@ -136,9 +141,9 @@ fun PairedDevicesList(
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel
 ) {
-    Log.e("Bluetooth", "Setting onDeviceConnectedCallback")
+    //Log.e("Bluetooth", "Setting onDeviceConnectedCallback")
     bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
-        Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
+        //Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
@@ -224,6 +229,7 @@ fun ShowSelectedDevice(
 fun BluetoothDetailsScreen(
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel,
+    healthMateUiState: HealthMateUiState,
     onBack: () -> Unit
 ) {
     bluetoothHandler.onCharacteristicChangedCallback = { value ->
@@ -233,12 +239,15 @@ fun BluetoothDetailsScreen(
     val characteristicValues by bluetoothViewModel.characteristicValues.collectAsState()
     val device by bluetoothViewModel.currentDevice.collectAsState()
     val characteristicValue by bluetoothViewModel.characteristicValue.collectAsState()
+    val loggedUser = healthMateUiState.user
+
+    //Log.e("Logged User", "Logged user ID: ${loggedUser.uzytkownikId}")
 
     var devName = bluetoothHandler.getConnectedDeviceName()
     var isEffectTriggered = remember { mutableStateOf(false) }
 
     LaunchedEffect(device) {
-        Log.e("Bluetooth", "LaunchedEffect triggered with device: $device")
+        //Log.e("Bluetooth", "LaunchedEffect triggered with device: $device")
         if (!isEffectTriggered.value) {
             isEffectTriggered.value = true
             if (device != null) {
@@ -266,8 +275,9 @@ fun BluetoothDetailsScreen(
         }
         val parsedData = device?.parseData(characteristicValue)
         if (parsedData != null) {
-            Log.e("Bluetooth", "Char values: $characteristicValues")
-            bluetoothViewModel.saveDeviceAndMeasurement(characteristicValues, device!!, devName, parsedData,
+            //Log.e("Bluetooth", "Char values: $characteristicValues")
+            //Log.e("Logged User", "Logged user ID pt2: ${loggedUser.uzytkownikId}")
+            bluetoothViewModel.saveDeviceAndMeasurement(loggedUser.uzytkownikId, characteristicValues, device!!, devName, parsedData,
                 stringResource(R.string.unknown), stringResource(R.string.no_info),
                 stringResource(R.string.thermometer_name), stringResource(R.string.weight_scale_name), stringResource(R.string.bpm_name),
                 stringResource(R.string.temperature_name), stringResource(R.string.pulse_name), stringResource(R.string.time_of_measurement)

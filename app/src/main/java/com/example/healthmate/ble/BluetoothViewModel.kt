@@ -57,8 +57,14 @@ private val repository: HealthMateRepository
     //region Database
 
     // Funkcja do zapisywania urządzenia i potem pomiaru
-    fun saveDeviceAndMeasurement(values: Map<UUID, String>, deviceType: BluetoothDev, devName: String?, parsedData: Map<String, Any>,
+    //var isDeviceAndMeasurementSaved = false
+    fun saveDeviceAndMeasurement(userId: Long, values: Map<UUID, String>, deviceType: BluetoothDev, devName: String?, parsedData: Map<String, Any>,
                                  unknown: String, noInfo:String, thermometerName: String, weightScaleName: String, bpmName: String, temperatureName: String, pulseName: String, timeOfMeas: String) {
+
+//        if (isDeviceAndMeasurementSaved) {
+//            Log.e("Bluetooth", "Device and measurement already saved, skipping...")
+//            return  // Jeśli zapisano, przerywamy dalsze działanie metody
+//        }
 
         viewModelScope.launch {
             // Przetwarzamy wartości charakterystyk na parametry obiektu Urzadzenie
@@ -67,10 +73,11 @@ private val repository: HealthMateRepository
             val model = values[BluetoothUUIDs.UUID_MODEL_NUMBER] ?: noInfo
             val rodzaj = deviceType.name
 
-            Log.e(TAG, "Saving a device: $nazwa, ${hexToString(producent)}, ${hexToString(model)}, $rodzaj")
+            //Log.e(TAG, "Saving a device: $nazwa, ${hexToString(producent)}, ${hexToString(model)}, $rodzaj")
 
             // Tworzymy obiekt Urzadzenie
             val urzadzenie = Urzadzenie(
+                uzytkownikId = userId,
                 nazwa = nazwa,
                 producent = hexToString(producent),
                 rodzaj = rodzaj,
@@ -82,8 +89,14 @@ private val repository: HealthMateRepository
 
             // Zapisz dane, wykorzystując deviceId
             saveParsedData(deviceId, parsedData, deviceType.name, thermometerName, weightScaleName, bpmName, temperatureName, pulseName, timeOfMeas)
+
+            //isDeviceAndMeasurementSaved = true
         }
     }
+
+//    fun resetSaveFlag() {
+//        isDeviceAndMeasurementSaved = false
+//    }
 
     // Funkcja do zapisania sparsowanych danych pomiaru
     @SuppressLint("SuspiciousIndentation")
@@ -93,7 +106,8 @@ private val repository: HealthMateRepository
             viewModelScope.launch {
                 // Zapisz pomiar
                 val pomiar = Pomiar(urzadzenieId = deviceId, data = timestamp)
-                if(pomiar.data != "null") {
+                val measExists = repository.checkIfMeasurementExists(pomiar.urzadzenieId, pomiar.data)
+                if(pomiar.data != "null" && !measExists) {
                     Log.e(
                         TAG,
                         "Saving a measurement to device: ${pomiar.urzadzenieId} with values: ${pomiar.data}"
@@ -198,14 +212,25 @@ private val repository: HealthMateRepository
     }
 
 
-    private val _allSensors = MutableStateFlow<List<Urzadzenie>>(emptyList()) // Pusty stan początkowy
-    val allSensors: StateFlow<List<Urzadzenie>> = _allSensors
+//    private val _allSensors = MutableStateFlow<List<Urzadzenie>>(emptyList()) // Pusty stan początkowy
+//    val allSensors: StateFlow<List<Urzadzenie>> = _allSensors
+//
+//    init {
+//        // Zbieranie danych z repozytorium i aktualizacja _allSensors
+//        viewModelScope.launch {
+//            repository.getAllSensors().collect { sensors ->
+//                _allSensors.value = sensors
+//            }
+//        }
+//    }
 
-    init {
-        // Zbieranie danych z repozytorium i aktualizacja _allSensors
+    private val _sensorsForUser = MutableStateFlow<List<Urzadzenie>>(emptyList())
+    val sensorsForUser: StateFlow<List<Urzadzenie>> = _sensorsForUser
+
+    fun loadSensorsForUser(userId: Long) {
         viewModelScope.launch {
-            repository.getAllSensors().collect { sensors ->
-                _allSensors.value = sensors
+            repository.getAllSensorsForUser(userId).collect { sensors ->
+                _sensorsForUser.value = sensors
             }
         }
     }
@@ -347,8 +372,8 @@ private val repository: HealthMateRepository
         }
     }
 
-    fun addNewUser() {
-        viewModelScope.launch {
+    suspend fun addNewUser() {
+        //viewModelScope.launch {
             val user = Uzytkownik(
                 imie = name,
                 login = usernameRegister,
@@ -356,10 +381,11 @@ private val repository: HealthMateRepository
             )
             val userId = repository.addUser(user)
             if (userId != null) {
-                loggedUser(user)
+                val newUser = user.copy(uzytkownikId = userId)
+                loggedUser(newUser)
             } else {
             }
-        }
+       // }
     }
 
     fun loggedUser(loggedUser: Uzytkownik) {

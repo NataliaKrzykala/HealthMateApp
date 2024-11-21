@@ -177,7 +177,8 @@ fun HealthMateApp(
                 MeasureScreen(
                     modifier = Modifier.fillMaxHeight(),
                     bluetoothHandler = bluetoothHandler,
-                    bluetoothViewModel = bluetoothViewModel
+                    bluetoothViewModel = bluetoothViewModel,
+                    healthMateUiState = uiState
                 )
             }
             composable(route = HealthMateScreen.Statistics.name) {

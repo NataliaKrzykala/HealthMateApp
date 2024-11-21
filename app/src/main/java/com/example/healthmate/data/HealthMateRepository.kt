@@ -17,7 +17,7 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
 
     //region Sensor-related operations
     suspend fun addSensor(urzadzenie: Urzadzenie): Long {
-        val existingDevice = urzadzenieDAO.getSensorByName(urzadzenie.nazwa)
+        val existingDevice = urzadzenieDAO.getDeviceByNameAndUserId(urzadzenie.nazwa, urzadzenie.uzytkownikId)
         return if (existingDevice == null) {
             // Jeśli urządzenie nie istnieje, zapisz je i zwróć ID nowo dodanego urządzenia
             val deviceId = urzadzenieDAO.insertSensor(urzadzenie)
@@ -33,6 +33,11 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
     fun getAllSensors(): Flow<List<Urzadzenie>> {
         return urzadzenieDAO.getAllSensors()
     }
+
+    fun getAllSensorsForUser(userId: Long): Flow<List<Urzadzenie>> {
+        return urzadzenieDAO.getAllSensorsForUser(userId)
+    }
+
 
 //    @Suppress("RedundantSuspendModifier")
 //    @WorkerThread
@@ -55,6 +60,10 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
 
     suspend fun getLastPomiarWithParametersByUrzadzenieId(urzadzenieId: Long): PomiarZParametrami? {
         return pomiarDAO.getLastMeasWithParametersByDevId(urzadzenieId)
+    }
+
+    suspend fun checkIfMeasurementExists(deviceId: Long, timestamp: String): Boolean {
+        return pomiarDAO.doesMeasurementExist(deviceId, timestamp)
     }
 
 //    suspend fun getMeasurementsByUser(userId: Int): List<Measurement> {
