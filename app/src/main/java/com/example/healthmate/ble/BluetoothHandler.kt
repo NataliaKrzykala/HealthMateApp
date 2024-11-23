@@ -1,6 +1,7 @@
 package com.example.healthmate.ble
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -11,13 +12,17 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.healthmate.ui.convertTimestampToByteArray
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.coroutines.Continuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.time.LocalDateTime
@@ -25,6 +30,9 @@ import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import android.os.Handler
+import android.os.Looper
+
 
 class BluetoothHandler(
     private val activity: Activity,
@@ -34,7 +42,7 @@ class BluetoothHandler(
 
     //region Variables
     private var btPermission = false
-    private var bluetoothGatt: BluetoothGatt? = null
+    var bluetoothGatt: BluetoothGatt? = null
 
     private var onServicesDiscovered: ((List<BluetoothGattService>) -> Unit)? = null
     var connectedDevice: BluetoothDevice? = null
@@ -44,14 +52,30 @@ class BluetoothHandler(
     private var onCharacteristicRead: ((UUID, ByteArray) -> Unit)? = null
     var onCharacteristicChangedCallback: ((ByteArray) -> Unit)? = null
 
+    var onConnectionStateChanged: ((ConnectionState) -> Unit)? = null
+
     private var deviceType: BluetoothDev? = null
 
     companion object {
         private const val TAG = "BluetoothHandler"
     }
+
+    enum class ConnectionState {
+        CONNECTED,
+        CONNECTING,
+        DISCONNECTING,
+        DISCONNECTED,
+        UNKNOWN;
+
+        fun isActive() = (this == CONNECTING || this == CONNECTED)
+
+        fun toTitle() = this.name.lowercase().replaceFirstChar { it.uppercase() }
+    }
     //endregion
 
     //region Values
+    //val connectMessage = MutableStateFlow(ConnectionState.DISCONNECTED)
+
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         val bluetoothManager: BluetoothManager? =
             activity.getSystemService(BluetoothManager::class.java)
@@ -108,17 +132,33 @@ class BluetoothHandler(
         return bluetoothAdapter?.isEnabled == true
     }
 
-    fun connectToGattServer(device: BluetoothDevice) {
+    fun connectToGattServer(device: BluetoothDevice): Boolean {
+        if (connectedDevice != null) {
+            Log.e(TAG, "Already connected to a device: ${connectedDevice?.name}. Disconnect first.")
+            return false // Zwróć false, jeśli nie chcemy połączyć się ponownie
+        }
+
+//        if (hasBluetoothPermission()) {
+//            checkAndRequestBluetoothPermission()
+//            return false
+//        }
+
+        Log.i(TAG, "Attempting to connect to GATT server for device: ${device.name}")
         if (hasBluetoothPermission()) {
             bluetoothAdapter.let { adapter ->
-                try {
+                return try {
                     bluetoothGatt = device.connectGatt(activity, false, bluetoothGattCallback)
+                    Log.e(TAG, "Status: ${bluetoothGatt != null}")
+                    return bluetoothGatt != null //bluetoothGatt?.connect() == true
+
                 } catch (e: SecurityException) {
                     Log.e(TAG, "SecurityException: ${e.message}")
+                    false
                 }
             }
         } else {
             checkAndRequestBluetoothPermission()
+            return false
         }
     }
 
@@ -127,45 +167,9 @@ class BluetoothHandler(
     }
     //endregion
 
-    //region Read characteristic & descriptor functions - not used currently
-    fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
-        bluetoothGatt?.let { gatt ->
-            if (hasBluetoothPermission()) {
-                try {
-                    gatt.readCharacteristic(characteristic)
-                } catch (e: SecurityException) {
-                    Log.e(TAG, "SecurityException: ${e.message}")
-                    // Obsługa braku uprawnień, np. wyświetlenie komunikatu do użytkownika
-                }
-            } else {
-                checkAndRequestBluetoothPermission()
-            }
-        }
-    }
-
     fun setOnCharacteristicReadCallback(callback: (UUID, ByteArray) -> Unit) {
         onCharacteristicRead = callback
     }
-
-    fun readDescriptor(descriptor: BluetoothGattDescriptor) {
-        bluetoothGatt?.let { gatt ->
-            if (hasBluetoothPermission()) {
-                try {
-                    gatt.readDescriptor(descriptor)
-                } catch (e: SecurityException) {
-                    Log.e(TAG, "SecurityException: ${e.message}")
-                    // Obsługa braku uprawnień, np. wyświetlenie komunikatu do użytkownika
-                }
-            } else {
-                checkAndRequestBluetoothPermission()
-            }
-        }
-    }
-
-    fun setOnDescriptorReadCallback(callback: (ByteArray) -> Unit) {
-        onDescriptorRead = callback
-    }
-    //endregion
 
     //region Get functions
     fun getBondedDevices(): Set<BluetoothDevice>? {
@@ -286,32 +290,6 @@ class BluetoothHandler(
         }
     }
 
-//    fun writeCharacteristic (services: List<BluetoothGattService>, servUUID: UUID, charUUID: UUID, value: ByteArray) {
-//        val characteristic = services
-//            .find { it.uuid == servUUID }
-//            ?.getCharacteristic(charUUID)
-//        characteristic?.let {
-//            bluetoothGatt?.let { gatt ->
-//                if (hasBluetoothPermission()) {
-//                    try {
-//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//                            // API 33 (Tiramisu) lub wyższe
-//                            gatt.writeCharacteristic(characteristic, value, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-//                        } else {
-//                            // Dla starszych wersji Androida
-//                            characteristic.value = value
-//                            gatt.writeCharacteristic(characteristic)
-//                        }
-//                    } catch (e: SecurityException) {
-//                        Log.e(TAG, "SecurityException: ${e.message}")
-//                    }
-//                } else {
-//                    checkAndRequestBluetoothPermission()
-//                }
-//            }
-//        }
-//    }
-
     private var writeCharacteristicContinuation: Continuation<Unit>? = null
 
     suspend fun writeCharacteristic(
@@ -357,24 +335,6 @@ class BluetoothHandler(
             services.any { it.uuid == BluetoothUUIDs.UUID_BPM_SERVICE } -> writeCharacteristic(services, BluetoothUUIDs.UUID_BPM_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
             else -> null
         }
-
-//        when (deviceType) {
-//            is Thermometer -> {
-//                writeCharacteristic(services, BluetoothUUIDs.UUID_THERMOMETER_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
-//            }
-//
-//            is WeightScale -> {
-//                writeCharacteristic(services, BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
-//            }
-//
-//            is BloodPressureMonitor -> {
-//                writeCharacteristic(services, BluetoothUUIDs.UUID_BPM_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
-//            }
-//
-//            else -> Log.e(TAG, "Did not write to timestamp")
-//        }
-
-        //writeCharacteristic(services, BluetoothUUIDs.UUID_WEIGHT_SCALE_SERVICE, BluetoothUUIDs.UUID_DATETIME_CHARACTERISTIC, byteArray)
     }
     //endregion
 
@@ -392,7 +352,7 @@ class BluetoothHandler(
         // Zgłoś typ urządzenia poprzez callback
         deviceType?.let {
             onDeviceConnectedCallback?.invoke(it)
-            Log.e("Bluetooth", "Callback invoked with: ${it.name}")
+            Log.e("Bluetooth", "Callback invoked with: $it , ${it.name}")
         } ?: run {
             Log.e("Bluetooth", "Unknown device type, callback not invoked")
             //onDeviceConnectedCallback?.invoke(null)
@@ -431,7 +391,6 @@ class BluetoothHandler(
     //endregion
 
     //region Read all needed characteristics
-    @OptIn(ExperimentalStdlibApi::class)
     suspend fun readCharacteristicValue(serviceUUID: UUID, characteristicUUID: UUID): String? {
         return suspendCoroutine { continuation ->
             setOnCharacteristicReadCallback { uuid, value ->
@@ -472,23 +431,157 @@ class BluetoothHandler(
     }
     //endregion
 
+//    fun BluetoothDevice.isAlreadyConnected(): Boolean {
+//        return try {
+//            javaClass.getMethod("isConnected").invoke(this) as? Boolean? ?: false
+//
+//        } catch (e: Throwable) {
+//            false
+//        }
+//    }
+
+    // Odbiornik Bluetooth, nasłuchujący zdarzeń związanych z połączeniem i rozłączeniem
+//    private val bluetoothReceiver = object : BroadcastReceiver() {
+//        @SuppressLint("MissingPermission")
+//        override fun onReceive(context: Context, intent: Intent) {
+//            val action = intent.action
+//            val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+//
+//            when (action) {
+//                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+//                    Log.e("BluetoothReceiver", "Device connected: ${device?.name}")
+//                }
+//                BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED -> {
+//                    Log.e("BluetoothReceiver", "Disconnect requested for device: ${device?.name}")
+//                }
+//                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+//                    Log.e("BluetoothReceiver", "Device disconnected: ${device?.name}")
+//                    retryConnection()  // Wywołaj metodę ponownego połączenia
+//                }
+//            }
+//        }
+//    }
+//
+//    // Funkcja rejestrująca odbiornik Bluetooth
+//    fun registerReceiver() {
+//        val filter = IntentFilter().apply {
+//            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+//            addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED)
+//            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+//        }
+//        activity.registerReceiver(bluetoothReceiver, filter)  // Używamy kontekstu aktywności
+//    }
+//
+//    // Funkcja usuwająca odbiornik Bluetooth
+//    fun unregisterReceiver() {
+//        activity.unregisterReceiver(bluetoothReceiver)  // Usuwamy odbiornik, gdy aktywność zostaje zniszczona
+//    }
+//
+//    // Funkcja do próby ponownego połączenia
+//    private fun retryConnection() {
+//        // Tutaj możesz dodać logikę próby ponownego połączenia z urządzeniem
+//        Log.e("BluetoothHandler", "Retrying Bluetooth connection...")
+//        // Możesz ponownie wywołać metodę connectToGattServer() na kolejnym urządzeniu, np.:
+//        // connectToGattServer()
+//    }
+
+
+
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
+//        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+//            super.onConnectionStateChange(gatt, status, newState)
+//            if (newState == BluetoothProfile.STATE_CONNECTED) {
+//                Log.i(TAG, "Connected to GATT server.")
+//                connectedDevice = gatt.device
+//                if (hasBluetoothPermission()) {
+//                    try {
+//                        gatt.discoverServices()
+//                    } catch (e: SecurityException) {
+//                        Log.e(TAG, "SecurityException: ${e.message}")
+//                    }
+//                }
+//            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+//                Log.i(TAG, "Disconnected from GATT server.")
+//                if (hasBluetoothPermission()) {
+//                    try {
+//                        gatt.close()
+//                        bluetoothGatt = null
+//                    } catch (e: SecurityException) {
+//                        Log.e(TAG, "SecurityException: ${e.message}")
+//                    }
+//                }
+//
+//            }
+//        }
+
+        @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.i(TAG, "Connected to GATT server.")
-                connectedDevice = gatt.device
-                if (hasBluetoothPermission()) {
+            when (newState) {
+                BluetoothProfile.STATE_CONNECTING -> {
+                    Log.e(TAG, "Connecting to device...")
+                    onConnectionStateChanged?.let { it(ConnectionState.CONNECTING) }
+                }
+
+                BluetoothProfile.STATE_CONNECTED -> {
+                    Log.i(TAG, "Connected to GATT server: ${gatt.device.name}")
+                    onConnectionStateChanged?.let {
+                        Log.e(TAG, "Emitting ConnectionState.CONNECTED for ${gatt.device.name}")
+                        it(ConnectionState.CONNECTED)
+                    }
+                    connectedDevice = gatt.device
                     try {
                         gatt.discoverServices()
                     } catch (e: SecurityException) {
                         Log.e(TAG, "SecurityException: ${e.message}")
                     }
                 }
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                Log.i(TAG, "Disconnected from GATT server.")
+
+                BluetoothProfile.STATE_DISCONNECTING -> {
+                    Log.e(TAG, "Disconnecting from device...")
+                    onConnectionStateChanged?.let { it(ConnectionState.DISCONNECTING) }
+                }
+
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    Log.i(TAG, "Disconnected from GATT server: ${gatt.device.name}")
+                    bluetoothGatt?.close()
+                    onConnectionStateChanged?.let {
+                        Log.e(TAG, "Emitting ConnectionState.DISCONNECTED for ${gatt.device.name}")
+                        it(ConnectionState.DISCONNECTED)
+                    }
+                    connectedDevice = null
+                    try {
+                        //gatt.disconnect()
+                        //gatt.close()
+                        //bluetoothGatt = null
+                    } catch (e: SecurityException) {
+                        Log.e(TAG, "SecurityException: ${e.message}")
+                    }
+                }
+
+
             }
+
+            // Obsługa błędów
+//            if (status == BluetoothGatt.GATT_FAILURE || status == 133) {
+//                Log.e(TAG, "Connection failed with status: $status")
+//                bluetoothGatt?.close()
+//                onConnectionStateChanged?.let { it(ConnectionState.DISCONNECTED) }
+//                if (hasBluetoothPermission()) {
+//                    try {
+//                        //bluetoothGatt?.close()
+//                        //bluetoothGatt = null
+//                    } catch (e: SecurityException) {
+//                        Log.e(TAG, "SecurityException: ${e.message}")
+//                    }
+//                }
+                // Możesz tu dodać dodatkową logikę, np. ponowną próbę połączenia
+//                Handler(Looper.getMainLooper()).postDelayed({
+                    // Możesz tutaj spróbować ponownie nawiązać połączenie
+//                }, 1000)
+//            }
         }
+
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             super.onServicesDiscovered(gatt, status)
@@ -628,6 +721,8 @@ class BluetoothHandler(
                 Log.i("BluetoothGattCallback", "Characteristic $uuid changed | value: $value")
             }
         }
+
+
         //endregion
     }
 }

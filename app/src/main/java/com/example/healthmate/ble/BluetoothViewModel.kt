@@ -17,17 +17,41 @@ import com.example.healthmate.data.Pomiar
 import com.example.healthmate.data.PomiarZParametrami
 import com.example.healthmate.data.Urzadzenie
 import com.example.healthmate.data.Uzytkownik
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.UUID
 
 class BluetoothViewModel(
 bluetoothHandler: BluetoothHandler,
 private val repository: HealthMateRepository
 ) : ViewModel() {
+
+    private val _connectState = MutableStateFlow<BluetoothHandler.ConnectionState>(BluetoothHandler.ConnectionState.DISCONNECTED)
+    val connectState: StateFlow<BluetoothHandler.ConnectionState> = _connectState
+
+//    fun onConnectionStateChanged(newState: BluetoothHandler.ConnectionState) {
+//        // Zmieniamy stan połączenia w ViewModelu
+//        _connectState.value = newState
+//    }
+
+    // Flow przechowujący stany połączenia BLE
+    private val _connectionStateFlow = MutableSharedFlow<BluetoothHandler.ConnectionState>()
+    val connectionStateFlow = _connectionStateFlow.asSharedFlow()
+
+    // Wywoływane przy każdej zmianie stanu połączenia
+    fun onConnectionStateChanged(newState: BluetoothHandler.ConnectionState) {
+        Log.e("BluetoothViewModel", "Received new state: $newState")
+        viewModelScope.launch {
+            _connectionStateFlow.emit(newState)
+        }
+    }
 
     companion object{
         private const val TAG = "BluetoothViewModel"
@@ -54,17 +78,11 @@ private val repository: HealthMateRepository
         _characteristicValue.value = value
     }
 
-    //region Database
+    //region Database: device, meas and meas parameters save + devices & last meas display
 
     // Funkcja do zapisywania urządzenia i potem pomiaru
-    //var isDeviceAndMeasurementSaved = false
     fun saveDeviceAndMeasurement(userId: Long, values: Map<UUID, String>, deviceType: BluetoothDev, devName: String?, parsedData: Map<String, Any>,
                                  unknown: String, noInfo:String, thermometerName: String, weightScaleName: String, bpmName: String, temperatureName: String, pulseName: String, timeOfMeas: String) {
-
-//        if (isDeviceAndMeasurementSaved) {
-//            Log.e("Bluetooth", "Device and measurement already saved, skipping...")
-//            return  // Jeśli zapisano, przerywamy dalsze działanie metody
-//        }
 
         viewModelScope.launch {
             // Przetwarzamy wartości charakterystyk na parametry obiektu Urzadzenie
@@ -89,14 +107,8 @@ private val repository: HealthMateRepository
 
             // Zapisz dane, wykorzystując deviceId
             saveParsedData(deviceId, parsedData, deviceType.name, thermometerName, weightScaleName, bpmName, temperatureName, pulseName, timeOfMeas)
-
-            //isDeviceAndMeasurementSaved = true
         }
     }
-
-//    fun resetSaveFlag() {
-//        isDeviceAndMeasurementSaved = false
-//    }
 
     // Funkcja do zapisania sparsowanych danych pomiaru
     @SuppressLint("SuspiciousIndentation")
@@ -211,19 +223,6 @@ private val repository: HealthMateRepository
         }
     }
 
-
-//    private val _allSensors = MutableStateFlow<List<Urzadzenie>>(emptyList()) // Pusty stan początkowy
-//    val allSensors: StateFlow<List<Urzadzenie>> = _allSensors
-//
-//    init {
-//        // Zbieranie danych z repozytorium i aktualizacja _allSensors
-//        viewModelScope.launch {
-//            repository.getAllSensors().collect { sensors ->
-//                _allSensors.value = sensors
-//            }
-//        }
-//    }
-
     private val _sensorsForUser = MutableStateFlow<List<Urzadzenie>>(emptyList())
     val sensorsForUser: StateFlow<List<Urzadzenie>> = _sensorsForUser
 
@@ -245,7 +244,41 @@ private val repository: HealthMateRepository
             _lastPomiarWithParameters.value = result
         }
     }
-    //endregion
+
+    private val _allPomiaryWithParameters = MutableStateFlow<List<PomiarZParametrami>>(emptyList())
+    val allPomiaryWithParameters: StateFlow<List<PomiarZParametrami>> = _allPomiaryWithParameters
+
+    fun loadAllPomiaryWithParameters(urzadzenieId: Long) {
+        viewModelScope.launch {
+            repository.getAllMeasWithParametersByDevId(urzadzenieId)
+                .collect { result ->
+                    _allPomiaryWithParameters.value = result
+                }
+        }
+    }
+
+    private fun parseDateToFloat(date: String): Float {
+        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val parsedDate = formatter.parse(date)
+        return parsedDate?.time?.toFloat() ?: 0f
+    }
+
+//    fun transformPomiaryToChartEntries(pomiary: List<PomiarZParametrami>): List<ChartEntry> {
+//        return pomiary.flatMap { pomiarZParametrami ->
+//            pomiarZParametrami.parametry
+//                .filter { it.nazwa == "temperatura" } // Filtruj interesujące Cię parametry
+//                .map { parametr ->
+//                    ChartEntry(
+//                        x = parseDateToFloat(pomiarZParametrami.pomiar.data), // Konwersja daty
+//                        y = parametr.wartosc // Wartość parametru
+//                    )
+//                }
+//        }
+//    }
+
+
+
+
 
     fun hexToString(hex: String): String {
         val output = StringBuilder("")
@@ -266,11 +299,9 @@ private val repository: HealthMateRepository
 
         return output.toString()
     }
+    //endregion
 
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////
+    //region Login&Register + add new user
     private val _uiState = MutableStateFlow(HealthMateUiState())
     val uiState: StateFlow<HealthMateUiState> = _uiState.asStateFlow()
 
@@ -417,4 +448,6 @@ private val repository: HealthMateRepository
         passwordRegister = ""
         name = ""
     }
+
+    //endregion
 }

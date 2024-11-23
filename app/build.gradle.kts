@@ -84,6 +84,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     val room_version = "2.6.1"
+    val vicoVersion = "2.0.0-beta.3"
 
     implementation("androidx.room:room-runtime:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")
@@ -110,4 +111,19 @@ dependencies {
 
     // optional - Paging 3 Integration
     implementation("androidx.room:room-paging:$room_version")
+
+//    implementation("com.patrykandpatrick.vico:compose:$vicoVersion")
+//    // For Material 2 theming in Jetpack Compose.
+//    implementation("com.patrykandpatrick.vico:compose-m2:$vicoVersion")
+//
+//    // For Material 3 theming in Jetpack Compose.
+//    implementation("com.patrykandpatrick.vico:compose-m3:$vicoVersion")
+//
+//    /* Houses the core logic. This is included in all other modules, so add it explicitly
+//    only in the unlikely event that you don’t need anything else. */
+//    implementation("com.patrykandpatrick.vico:core:$vicoVersion")
+//
+//    // For the view system.
+//    implementation("com.patrykandpatrick.vico:views:$vicoVersion")
+
 }

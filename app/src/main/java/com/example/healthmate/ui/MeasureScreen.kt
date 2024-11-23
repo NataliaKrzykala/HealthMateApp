@@ -1,5 +1,6 @@
 package com.example.healthmate.ui
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
@@ -64,9 +65,81 @@ import com.example.healthmate.ble.WeightScale
 import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.ui.theme.Typography
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 
+//@Composable
+//fun MeasureScreen(
+//    modifier: Modifier = Modifier,
+//    bluetoothHandler: BluetoothHandler,
+//    bluetoothViewModel: BluetoothViewModel,
+//    healthMateUiState: HealthMateUiState
+//) {
+//    var showDetails by remember { mutableStateOf(false) }
+//    var services by remember { mutableStateOf<List<BluetoothGattService>>(emptyList()) }
+//
+//    bluetoothHandler.setOnServicesDiscoveredCallback { discoveredServices ->
+//        services = discoveredServices
+//        showDetails = true
+//    }
+//
+//    //bluetoothViewModel.resetSaveFlag()
+//
+//    if (showDetails) {
+//        BluetoothDetailsScreen(
+//            bluetoothHandler = bluetoothHandler,
+//            bluetoothViewModel = bluetoothViewModel,
+//            healthMateUiState = healthMateUiState
+//        ) {
+//            showDetails = false
+//        }
+//    } else {
+//        val pairedDevices = bluetoothHandler.getBondedDevices()
+//
+//        val composition by rememberLottieComposition(
+//            spec = LottieCompositionSpec.RawRes(R.raw.anim)
+//        )
+//        var isPlaying by remember {
+//            mutableStateOf(true)
+//        }
+//        val progress by animateLottieCompositionAsState(
+//            composition = composition,
+//            iterations = LottieConstants.IterateForever
+//        )
+//
+//        Column(
+//            modifier = modifier,
+//            verticalArrangement = Arrangement.Center
+//        ) {
+//            Column(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalAlignment = Alignment.CenterHorizontally,
+//                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.padding_small))
+//            ) {
+//                if (pairedDevices == null) {
+//                    LottieAnimation(
+//                        composition = composition,
+//                        progress = {
+//                            progress
+//                        }
+//                    )
+//                    Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
+//                    Text(
+//                        stringResource(R.string.paired_list),
+//                        style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+//                    )
+//                } else {
+//                    PairedDevicesList(pairedDevices, bluetoothHandler, bluetoothViewModel)
+//                }
+//            }
+//        }
+//    }
+//}
+
+@SuppressLint("MissingPermission")
 @Composable
 fun MeasureScreen(
     modifier: Modifier = Modifier,
@@ -74,66 +147,111 @@ fun MeasureScreen(
     bluetoothViewModel: BluetoothViewModel,
     healthMateUiState: HealthMateUiState
 ) {
-    var showDetails by remember { mutableStateOf(false) }
-    var services by remember { mutableStateOf<List<BluetoothGattService>>(emptyList()) }
-
-    bluetoothHandler.setOnServicesDiscoveredCallback { discoveredServices ->
-        services = discoveredServices
-        showDetails = true
+    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
+        Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
+        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
-    //bluetoothViewModel.resetSaveFlag()
+    var showDetails by remember { mutableStateOf(false) }
+    var isConnecting by remember { mutableStateOf(true) }
+    var currentDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
+    val pairedDevices = bluetoothHandler.getBondedDevices()
 
-    if (showDetails) {
-        BluetoothDetailsScreen(
-            bluetoothHandler = bluetoothHandler,
-            bluetoothViewModel = bluetoothViewModel,
-            healthMateUiState = healthMateUiState
-        ) {
-            showDetails = false
+    bluetoothHandler.onConnectionStateChanged = { newState ->
+        bluetoothViewModel.onConnectionStateChanged(newState)
+    }
+
+    if (pairedDevices != null) {
+        Log.e("Paired Devices List", "List is of size: ${pairedDevices.size}")
+    }
+
+    LaunchedEffect(Unit) {
+        isConnecting = true
+        Log.e("isConnecting", "Attempting to connect...")
+
+        // Sprawdzenie uprawnień na początku
+        if (!bluetoothHandler.hasBluetoothPermission()) {
+            isConnecting = false
+            Log.e("isConnecting", "Permission denied for Bluetooth")
+            return@LaunchedEffect
         }
-    } else {
-        val pairedDevices = bluetoothHandler.getBondedDevices()
 
-        val composition by rememberLottieComposition(
-            spec = LottieCompositionSpec.RawRes(R.raw.anim)
-        )
-        var isPlaying by remember {
-            mutableStateOf(true)
+        val deviceList = pairedDevices?.toList()
+        if (deviceList.isNullOrEmpty()) {
+            Log.e("isConnecting", "No paired devices found.")
+            isConnecting = false
+            return@LaunchedEffect
         }
-        val progress by animateLottieCompositionAsState(
-            composition = composition,
-            iterations = LottieConstants.IterateForever
-        )
 
-        Column(
-            modifier = modifier,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.padding_small))
-            ) {
-                if (pairedDevices == null) {
-                    LottieAnimation(
-                        composition = composition,
-                        progress = {
-                            progress
+        var connected = false // Flaga do śledzenia sukcesu połączenia
+
+        // Powtarzaj, dopóki nie połączysz się z którymś urządzeniem
+        while (!connected) {
+            for (device in deviceList) {
+                if (connected) break // Wyjście, jeśli już połączono
+
+                //try {
+                    if (device.name.contains("A&D") || device.name.contains("nRF")) {
+                        Log.e("isConnecting", "Attempting to connect to device: ${device.name}")
+
+                        val initialConnect = bluetoothHandler.connectToGattServer(device)
+                        if(!initialConnect){
+                            currentDevice = device
+                            connected = true
                         }
-                    )
-                    Spacer(modifier = Modifier.height(dimensionResource(R.dimen.padding_small)))
-                    Text(
-                        stringResource(R.string.paired_list),
-                        style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-                    )
-                } else {
-                    PairedDevicesList(pairedDevices, bluetoothHandler, bluetoothViewModel)
-                }
+                        delay(3000) // Opóźnienie na ustabilizowanie połączenia
+                        //delay(5000)
+                    }
             }
+
+            // Jeśli po przejściu przez wszystkie urządzenia nadal brak połączenia
+            if (!connected) {
+                Log.e("isConnecting", "Retrying connection with all devices...")
+                delay(2000) // Krótkie opóźnienie przed kolejną rundą prób
+            }
+        }
+        isConnecting = false
+    }
+
+    when {
+        isConnecting -> {
+            ConnectingAnimationScreen()
+        }
+        else -> {
+            BluetoothDetailsScreen(
+                bluetoothHandler = bluetoothHandler,
+                bluetoothViewModel = bluetoothViewModel,
+                healthMateUiState = healthMateUiState,
+                onBack = { /* Obsługa powrotu */ }
+            )
         }
     }
 }
+
+@Composable
+fun ConnectingAnimationScreen() {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.anim))
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        LottieAnimation(composition = composition, progress = { progress })
+        Text(
+            text = stringResource(R.string.connecting),
+            style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(top = 16.dp)
+        )
+    }
+}
+
+
+
 
 @Composable
 fun PairedDevicesList(
@@ -143,7 +261,7 @@ fun PairedDevicesList(
 ) {
     //Log.e("Bluetooth", "Setting onDeviceConnectedCallback")
     bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
-        //Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
+        Log.e("Bluetooth", "Device connected (measure screen): $deviceType")
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 

@@ -62,6 +62,10 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
         return pomiarDAO.getLastMeasWithParametersByDevId(urzadzenieId)
     }
 
+    suspend fun getAllMeasWithParametersByDevId(urzadzenieId: Long): Flow<List<PomiarZParametrami>> {
+        return pomiarDAO.getAllMeasWithParametersByDevId(urzadzenieId)
+    }
+
     suspend fun checkIfMeasurementExists(deviceId: Long, timestamp: String): Boolean {
         return pomiarDAO.doesMeasurementExist(deviceId, timestamp)
     }

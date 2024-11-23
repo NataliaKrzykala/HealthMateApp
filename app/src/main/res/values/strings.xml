@@ -82,6 +82,8 @@
     <string name="temperature_name">temperatura</string>
     <string name="pulse_name">puls</string>
 
+    <string name="no_devices_connected">Nie udało połączyć się z urządzeniem</string>
+
 
 
 </resources>

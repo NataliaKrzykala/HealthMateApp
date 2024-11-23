@@ -53,6 +53,8 @@ class MainActivity : ComponentActivity() {
                 .get(BluetoothViewModel::class.java)
 
             bluetoothHandler.checkAndRequestBluetoothPermission()
+            // Rejestrujemy odbiornik Bluetooth, aby nasłuchiwać zdarzeń
+            //bluetoothHandler.registerReceiver()
 
             HealthMateTheme {
                 Surface(
@@ -64,6 +66,8 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+
 
     private fun btScan(){
         //Toast.makeText(this, R.string.ble_connected_succesfully, Toast.LENGTH_LONG).show()

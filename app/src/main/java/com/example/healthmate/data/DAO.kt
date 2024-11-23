@@ -61,6 +61,14 @@ interface PomiarDAO {
     """)
     suspend fun getLastMeasWithParametersByDevId(urzadzenieId: Long): PomiarZParametrami?
 
+    @Transaction
+    @Query("""
+    SELECT * FROM Pomiar 
+    WHERE urzadzenieId = :urzadzenieId 
+    ORDER BY data ASC
+""")
+    fun getAllMeasWithParametersByDevId(urzadzenieId: Long): Flow<List<PomiarZParametrami>>
+
 //    @Query("SELECT * FROM Pomiar WHERE data BETWEEN :poczatek AND :koniec")
 //    suspend fun getMeasurementsByTimeRange(poczatek: String, koniec: String): List<Pomiar> // JAKA JEDNOSTKA DLA TIMESTAMP'U
 }
