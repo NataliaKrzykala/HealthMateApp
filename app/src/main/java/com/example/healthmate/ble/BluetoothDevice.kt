@@ -60,6 +60,7 @@ class Thermometer : BluetoothDev() {
                     val timestamp = parseTimestampFromByte(characteristicValue.copyOfRange(5, 12))
                     val formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
                     val formattedDateTime = timestamp?.format(formatter)
+                    //val isoDate = timestamp?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
                 } else {
                     //Log.d("No flag")

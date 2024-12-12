@@ -56,7 +56,7 @@ interface PomiarDAO {
     @Query("""
         SELECT * FROM Pomiar 
         WHERE urzadzenieId = :urzadzenieId 
-        ORDER BY data DESC 
+        ORDER BY pomiarId DESC 
         LIMIT 1
     """)
     suspend fun getLastMeasWithParametersByDevId(urzadzenieId: Long): PomiarZParametrami?
@@ -65,7 +65,7 @@ interface PomiarDAO {
     @Query("""
     SELECT * FROM Pomiar 
     WHERE urzadzenieId = :urzadzenieId 
-    ORDER BY data ASC
+    ORDER BY pomiarId DESC
 """)
     fun getAllMeasWithParametersByDevId(urzadzenieId: Long): Flow<List<PomiarZParametrami>>
 

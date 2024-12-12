@@ -3,6 +3,7 @@ package com.example.healthmate.ble
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.runtime.Composable
+//import com.patrykandpatrick.vico.core.entry.FloatEntry
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -248,37 +249,19 @@ private val repository: HealthMateRepository
     private val _allPomiaryWithParameters = MutableStateFlow<List<PomiarZParametrami>>(emptyList())
     val allPomiaryWithParameters: StateFlow<List<PomiarZParametrami>> = _allPomiaryWithParameters
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     fun loadAllPomiaryWithParameters(urzadzenieId: Long) {
         viewModelScope.launch {
+            _isLoading.value = true
             repository.getAllMeasWithParametersByDevId(urzadzenieId)
                 .collect { result ->
                     _allPomiaryWithParameters.value = result
+                    _isLoading.value = false
                 }
         }
     }
-
-    private fun parseDateToFloat(date: String): Float {
-        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val parsedDate = formatter.parse(date)
-        return parsedDate?.time?.toFloat() ?: 0f
-    }
-
-//    fun transformPomiaryToChartEntries(pomiary: List<PomiarZParametrami>): List<ChartEntry> {
-//        return pomiary.flatMap { pomiarZParametrami ->
-//            pomiarZParametrami.parametry
-//                .filter { it.nazwa == "temperatura" } // Filtruj interesujące Cię parametry
-//                .map { parametr ->
-//                    ChartEntry(
-//                        x = parseDateToFloat(pomiarZParametrami.pomiar.data), // Konwersja daty
-//                        y = parametr.wartosc // Wartość parametru
-//                    )
-//                }
-//        }
-//    }
-
-
-
-
 
     fun hexToString(hex: String): String {
         val output = StringBuilder("")

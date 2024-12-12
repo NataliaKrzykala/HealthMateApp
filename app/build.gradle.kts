@@ -1,13 +1,13 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
-    id("kotlin-kapt")
-    //id("com.google.devtools.ksp") version "1.9.0-1.0.13"
+    alias(libs.plugins.compose.compiler)
+    id("com.google.devtools.ksp") version "2.0.21-1.0.25"  // Wtyczka KSP
 }
 
 android {
     namespace = "com.example.healthmate"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.healthmate"
@@ -31,19 +31,24 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
     }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -85,14 +90,15 @@ dependencies {
 
     val room_version = "2.6.1"
     val vicoVersion = "2.0.0-beta.3"
+    val composeCharts_version = "0.1.0"
 
+    implementation ("co.yml:ycharts:2.1.0")
+
+    implementation ("io.github.ehsannarmani:compose-charts:$composeCharts_version")
+
+    // Zaktualizuj Room do wersji z obsługą KSP
     implementation("androidx.room:room-runtime:$room_version")
-    annotationProcessor("androidx.room:room-compiler:$room_version")
-
-    // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$room_version")
-    // To use Kotlin Symbol Processing (KSP)
-    //ksp("androidx.room:room-compiler:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")  // Zamiast kapt, używamy ksp
 
     // optional - Kotlin Extensions and Coroutines support for Room
     implementation("androidx.room:room-ktx:$room_version")
@@ -112,18 +118,12 @@ dependencies {
     // optional - Paging 3 Integration
     implementation("androidx.room:room-paging:$room_version")
 
-//    implementation("com.patrykandpatrick.vico:compose:$vicoVersion")
-//    // For Material 2 theming in Jetpack Compose.
-//    implementation("com.patrykandpatrick.vico:compose-m2:$vicoVersion")
-//
-//    // For Material 3 theming in Jetpack Compose.
-//    implementation("com.patrykandpatrick.vico:compose-m3:$vicoVersion")
-//
-//    /* Houses the core logic. This is included in all other modules, so add it explicitly
-//    only in the unlikely event that you don’t need anything else. */
-//    implementation("com.patrykandpatrick.vico:core:$vicoVersion")
-//
-//    // For the view system.
-//    implementation("com.patrykandpatrick.vico:views:$vicoVersion")
+    // For Jetpack Compose.
+    implementation("com.patrykandpatrick.vico:compose:$vicoVersion")
 
+    // For Material 2 theming in Jetpack Compose.
+    implementation("com.patrykandpatrick.vico:compose-m2:$vicoVersion")
+
+    // For Material 3 theming in Jetpack Compose.
+    implementation("com.patrykandpatrick.vico:compose-m3:$vicoVersion")
 }
