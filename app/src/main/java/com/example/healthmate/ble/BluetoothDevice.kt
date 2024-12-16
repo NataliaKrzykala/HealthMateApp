@@ -60,7 +60,6 @@ class Thermometer : BluetoothDev() {
                     val timestamp = parseTimestampFromByte(characteristicValue.copyOfRange(5, 12))
                     val formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
                     val formattedDateTime = timestamp?.format(formatter)
-                    //val isoDate = timestamp?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
                 } else {
                     //Log.d("No flag")
@@ -106,7 +105,7 @@ class WeightScale : BluetoothDev() {
                 weightMeas?.let { weight ->
                     val unit = if (flagResult.isInKilograms == true) "kg" else "lb"
                     resultMap[stringResource(R.string.weight)] = "$weight $unit"
-                    resultMap["WeightResult"] = "$weight"
+                    resultMap["WeightResult"] = weight
                     resultMap["Unit"] = "$unit"
                 }
 
@@ -126,7 +125,7 @@ class WeightScale : BluetoothDev() {
                 weightMeas?.let { weight ->
                     val unit = "kg"
                     resultMap[stringResource(R.string.weight)] = "$weight $unit"
-                    resultMap["WeightResult"] = "$weight"
+                    resultMap["WeightResult"] = weight
                     resultMap["Unit"] = "$unit"
                 }
             }

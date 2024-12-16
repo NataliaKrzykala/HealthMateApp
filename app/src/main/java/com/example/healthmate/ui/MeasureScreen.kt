@@ -184,6 +184,7 @@ fun MeasureScreen(
         }
 
         var connected = false // Flaga do śledzenia sukcesu połączenia
+        var connectedUA = false // Flaga do śledzenia sukcesu połączenia
 
         // Powtarzaj, dopóki nie połączysz się z którymś urządzeniem
         while (!connected) {
@@ -191,17 +192,36 @@ fun MeasureScreen(
                 if (connected) break // Wyjście, jeśli już połączono
 
                 //try {
-                    if (device.name.contains("A&D") || device.name.contains("nRF")) {
-                        Log.e("isConnecting", "Attempting to connect to device: ${device.name}")
+//                if (device.name.contains("A&D_UA") || device.name.contains("nRF")) {
+//                    Log.e("isConnecting", "Attempting to connect to device: ${device.name}")
+//
+//                    val initialConnect = bluetoothHandler.connectToGattServer(device)
+//                    if (!initialConnect) {
+//                        currentDevice = device
+//                        connected = true
+//                        Log.e("isConnecting", "initialConnect changed for: ${device.name}")
+//                    }
+//                    //delay(5000) // Opóźnienie na ustabilizowanie połączenia
+//                    //delay(5000)
+//                }
+                //delay(8000)
+                if (device.name.contains("A&D") || device.name.contains("nRF")) { //|| device.name.contains("A&D_UC")
+                    Log.e("isConnecting", "Attempting to connect to device: ${device.name}")
 
-                        val initialConnect = bluetoothHandler.connectToGattServer(device)
-                        if(!initialConnect){
-                            currentDevice = device
-                            connected = true
-                        }
-                        delay(3000) // Opóźnienie na ustabilizowanie połączenia
-                        //delay(5000)
+                    val initialConnect = bluetoothHandler.connectToGattServer(device)
+                    if (!initialConnect) {
+                        currentDevice = device
+                        connected = true
+                        Log.e("isConnecting", "initialConnect changed for: ${device.name}")
                     }
+
+                    if(device.name.contains("A&D_UT")) {
+                        delay(3000) // Opóźnienie na ustabilizowanie połączenia
+                    }
+
+                    //delay(5000)
+                }
+
             }
 
             // Jeśli po przejściu przez wszystkie urządzenia nadal brak połączenia
@@ -217,6 +237,7 @@ fun MeasureScreen(
         isConnecting -> {
             ConnectingAnimationScreen()
         }
+
         else -> {
             BluetoothDetailsScreen(
                 bluetoothHandler = bluetoothHandler,
@@ -249,8 +270,6 @@ fun ConnectingAnimationScreen() {
         )
     }
 }
-
-
 
 
 @Composable
@@ -295,11 +314,12 @@ fun PairedDevicesList(
                 dimensionResource(id = R.dimen.padding_medium)
             )
         ) {
-            pairedDevices?.forEach {
-                    device ->
+            pairedDevices?.forEach { device ->
                 if (bluetoothHandler.bluetoothEnabled()) {
                     if (device.name.contains("A&D") || device.name.contains("nRF")) {
-                        ShowSelectedDevice(deviceName = device.name, onDeviceClick = { bluetoothHandler.connectToGattServer(device) })
+                        ShowSelectedDevice(
+                            deviceName = device.name,
+                            onDeviceClick = { bluetoothHandler.connectToGattServer(device) })
                     }
                 } else {
                     bluetoothHandler.checkAndRequestBluetoothPermission()
@@ -395,16 +415,27 @@ fun BluetoothDetailsScreen(
         if (parsedData != null) {
             //Log.e("Bluetooth", "Char values: $characteristicValues")
             //Log.e("Logged User", "Logged user ID pt2: ${loggedUser.uzytkownikId}")
-            bluetoothViewModel.saveDeviceAndMeasurement(loggedUser.uzytkownikId, characteristicValues, device!!, devName, parsedData,
-                stringResource(R.string.unknown), stringResource(R.string.no_info),
-                stringResource(R.string.thermometer_name), stringResource(R.string.weight_scale_name), stringResource(R.string.bpm_name),
-                stringResource(R.string.temperature_name), stringResource(R.string.pulse_name), stringResource(R.string.time_of_measurement)
-                )
+            bluetoothViewModel.saveDeviceAndMeasurement(
+                loggedUser.uzytkownikId,
+                characteristicValues,
+                device!!,
+                devName,
+                parsedData,
+                stringResource(R.string.unknown),
+                stringResource(R.string.no_info),
+                stringResource(R.string.thermometer_name),
+                stringResource(R.string.weight_scale_name),
+                stringResource(R.string.bpm_name),
+                stringResource(R.string.temperature_name),
+                stringResource(R.string.pulse_name),
+                stringResource(R.string.time_of_measurement)
+            )
         }
 
         //NEW
         Column(
-            modifier = Modifier.fillMaxHeight()
+            modifier = Modifier
+                .fillMaxHeight()
                 .verticalScroll(rememberScrollState())
         ) {
             Card(
@@ -444,7 +475,10 @@ fun BluetoothDetailsScreen(
                         style = Typography.displayMedium
                     )
                 }
-                Divider(thickness = dimensionResource(R.dimen.thickness_divider), modifier = Modifier.height(0.dp))
+                Divider(
+                    thickness = dimensionResource(R.dimen.thickness_divider),
+                    modifier = Modifier.height(0.dp)
+                )
             }
             CharacteristicRead(
                 modifier = Modifier.padding(dimensionResource(R.dimen.padding_Vsmall)),

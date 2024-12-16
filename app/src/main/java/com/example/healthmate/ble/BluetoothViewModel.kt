@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 
@@ -114,61 +116,78 @@ private val repository: HealthMateRepository
     // Funkcja do zapisania sparsowanych danych pomiaru
     @SuppressLint("SuspiciousIndentation")
     private fun saveParsedData(deviceId: Long, values: Map<String, Any>, deviceType: String, thermometerName: String, weightScaleName: String, bpmName: String, temperatureName: String, pulseName: String, timeOfMeas: String) {
-        val timestamp = values[timeOfMeas].toString()
+        val timestamp = values[timeOfMeas] as? String
+        if (timestamp != null) {
+            val formatterInput = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
+            val timestampParsed = LocalDateTime.parse(timestamp, formatterInput)
+
+            val isoDate = timestampParsed.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
             viewModelScope.launch {
                 // Zapisz pomiar
-                val pomiar = Pomiar(urzadzenieId = deviceId, data = timestamp)
-                val measExists = repository.checkIfMeasurementExists(pomiar.urzadzenieId, pomiar.data)
-                if(pomiar.data != "null" && !measExists) {
+                val pomiar = Pomiar(urzadzenieId = deviceId, data = isoDate)
+                val measExists =
+                    repository.checkIfMeasurementExists(pomiar.urzadzenieId, pomiar.data)
+                if (pomiar.data != "null" && !measExists) {
                     Log.e(
                         TAG,
                         "Saving a measurement to device: ${pomiar.urzadzenieId} with values: ${pomiar.data}"
                     )
                     val pomiarId = repository.addMeasurement(pomiar)
 
-                    if(deviceType == thermometerName){
+                    if (deviceType == thermometerName) {
                         val param = ParametrPomiaru(
                             pomiarId = pomiarId,
                             nazwa = temperatureName,
                             wartosc = (values["TempResult"] as? Float) ?: 0.0f,
                             jednostka = values["Unit"].toString()
                         )
-                        Log.e(TAG, "Saving a parameter to measurement: ${param.pomiarId} with values: ${param.nazwa}, ${param.wartosc}, ${param.jednostka}")
+                        Log.e(
+                            TAG,
+                            "Saving a parameter to measurement: ${param.pomiarId} with values: ${param.nazwa}, ${param.wartosc}, ${param.jednostka}"
+                        )
 
-                        if(param.wartosc != 0.0f){
+                        if (param.wartosc != 0.0f && param.wartosc < 45 && param.wartosc > 30) {
                             repository.addMeasurementParameter(param)
-                        }else{
+                        } else {
                             /*TODO usunąć pomiar?*/
                         }
 
-                    }else if(deviceType == weightScaleName){
+                    }
+                    if (deviceType == weightScaleName) {
                         val param = ParametrPomiaru(
                             pomiarId = pomiarId,
                             nazwa = weightScaleName,
                             wartosc = (values["WeightResult"] as? Float) ?: 0.0f,
                             jednostka = values["Unit"].toString()
                         )
-                        Log.e(TAG, "Saving a parameter to measurement: ${param.pomiarId} with values: ${param.nazwa}, ${param.wartosc}, ${param.jednostka}")
+                        Log.e(
+                            TAG,
+                            "Saving a parameter to measurement: ${param.pomiarId} with values: ${param.nazwa}, ${param.wartosc}, ${param.jednostka}"
+                        )
 
-                        if(param.wartosc != 0.0f){
+                        if (param.wartosc != 0.0f) {
                             repository.addMeasurementParameter(param)
-                        }else{
+                        } else {
                             /*TODO usunąć pomiar?*/
                         }
 
-                    }else{
+                    }
+                    else {
                         val paramSYS = ParametrPomiaru(
                             pomiarId = pomiarId,
                             nazwa = "SYS",
                             wartosc = (values["SYSResult"] as? Float) ?: 0.0f,
                             jednostka = values["SYSUnit"].toString()
                         )
-                        Log.e(TAG, "Saving a parameter to measurement: ${paramSYS.pomiarId} with values: ${paramSYS.nazwa}, ${paramSYS.wartosc}, ${paramSYS.jednostka}")
+                        Log.e(
+                            TAG,
+                            "Saving a parameter to measurement: ${paramSYS.pomiarId} with values: ${paramSYS.nazwa}, ${paramSYS.wartosc}, ${paramSYS.jednostka}"
+                        )
 
-                        if(paramSYS.wartosc != 0.0f){
+                        if (paramSYS.wartosc != 0.0f) {
                             repository.addMeasurementParameter(paramSYS)
-                        }else{
+                        } else {
                             /*TODO usunąć pomiar?*/
                         }
 
@@ -178,11 +197,14 @@ private val repository: HealthMateRepository
                             wartosc = (values["DIAResult"] as? Float) ?: 0.0f,
                             jednostka = values["DIAUnit"].toString()
                         )
-                        Log.e(TAG, "Saving a parameter to measurement: ${paramDIA.pomiarId} with values: ${paramDIA.nazwa}, ${paramDIA.wartosc}, ${paramDIA.jednostka}")
+                        Log.e(
+                            TAG,
+                            "Saving a parameter to measurement: ${paramDIA.pomiarId} with values: ${paramDIA.nazwa}, ${paramDIA.wartosc}, ${paramDIA.jednostka}"
+                        )
 
-                        if(paramDIA.wartosc != 0.0f){
+                        if (paramDIA.wartosc != 0.0f) {
                             repository.addMeasurementParameter(paramDIA)
-                        }else{
+                        } else {
                             /*TODO usunąć pomiar?*/
                         }
 
@@ -192,11 +214,14 @@ private val repository: HealthMateRepository
                             wartosc = (values["MAPResult"] as? Float) ?: 0.0f,
                             jednostka = values["MAPUnit"].toString()
                         )
-                        Log.e(TAG, "Saving a parameter to measurement: ${paramMAP.pomiarId} with values: ${paramMAP.nazwa}, ${paramMAP.wartosc}, ${paramMAP.jednostka}")
+                        Log.e(
+                            TAG,
+                            "Saving a parameter to measurement: ${paramMAP.pomiarId} with values: ${paramMAP.nazwa}, ${paramMAP.wartosc}, ${paramMAP.jednostka}"
+                        )
 
-                        if(paramMAP.wartosc != 0.0f){
+                        if (paramMAP.wartosc != 0.0f) {
                             repository.addMeasurementParameter(paramMAP)
-                        }else{
+                        } else {
                             /*TODO usunąć POMIAR?*/
                         }
 
@@ -206,16 +231,20 @@ private val repository: HealthMateRepository
                             wartosc = (values["PulseResult"] as? Float) ?: 0.0f,
                             jednostka = values["PulseUnit"].toString()
                         )
-                        Log.e(TAG, "Saving a parameter to measurement: ${paramPulse.pomiarId} with values: ${paramPulse.nazwa}, ${paramPulse.wartosc}, ${paramPulse.jednostka}")
+                        Log.e(
+                            TAG,
+                            "Saving a parameter to measurement: ${paramPulse.pomiarId} with values: ${paramPulse.nazwa}, ${paramPulse.wartosc}, ${paramPulse.jednostka}"
+                        )
 
-                        if(paramPulse.wartosc != 0.0f){
+                        if (paramPulse.wartosc != 0.0f) {
                             repository.addMeasurementParameter(paramPulse)
-                        }else{
+                        } else {
                             /*TODO usunąć POMIAR?*/
                         }
                     }
                 }
             }
+        }
     }
 
     fun clearDatabase() {

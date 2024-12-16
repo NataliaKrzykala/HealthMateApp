@@ -21,7 +21,7 @@
     <string name="create_password">Utwórz hasło</string>
     <string name="measure">Zrób pomiar</string>
     
-    <string name="scales">Waga</string>
+    //<string name="scales">Waga</string>
     <string name="manometer">Ciśnieniomierz</string>
     <string name="heart_rate_monitor">Pulsometr</string>
 

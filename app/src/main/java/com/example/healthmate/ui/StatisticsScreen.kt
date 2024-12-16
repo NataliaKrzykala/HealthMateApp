@@ -100,6 +100,11 @@ import ir.ehsannarmani.compose_charts.models.LineProperties
 import ir.ehsannarmani.compose_charts.models.StrokeStyle
 import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -205,8 +210,9 @@ fun StatisticsScreen(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 if (lastPomiar != null) {
+                    val formattedDate = convertIsoToCustomFormat(lastPomiar.pomiar.data) ?: "Nieznana data"
                     Text(
-                        text = stringResource(R.string.date, lastPomiar.pomiar.data),
+                        text = stringResource(R.string.date, formattedDate),
                         modifier = Modifier.padding(vertical = 8.dp),
                         style = Typography.displayMedium
                     )
@@ -222,8 +228,9 @@ fun StatisticsScreen(
 
         Card(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(8.dp)
                 .fillMaxWidth(),
+                //.heightIn(min = 300.dp)
             elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
                 Text(
@@ -231,18 +238,27 @@ fun StatisticsScreen(
                     style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 4.dp),
                 )
 
                 if (selectedDevice.rodzaj == "termometr") {
                     TemperatureChartScreen(
                         viewModel = bluetoothViewModel,
-                        urzadzenieId = selectedDevice.urzadzenieId
+                        urzadzenieId = selectedDevice.urzadzenieId,
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
                 } else if (selectedDevice.rodzaj == "waga") {
-
-                } else {
-
+                    WeightScaleChartScreen(
+                        viewModel = bluetoothViewModel,
+                        urzadzenieId = selectedDevice.urzadzenieId,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                } else if (selectedDevice.rodzaj == "ciśnieniomierz") {
+                    BPMChartScreen(
+                        viewModel = bluetoothViewModel,
+                        urzadzenieId = selectedDevice.urzadzenieId,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
                 }
         }
     }
@@ -286,234 +302,9 @@ fun DisplayMeasParams(lastPomiar: PomiarZParametrami) {
 
 }
 
-
-// VICO
-
-//@Composable
-//fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
-//    // Uruchamiamy ładowanie danych
-//    LaunchedEffect(urzadzenieId) {
-//        viewModel.loadAllPomiaryWithParameters(urzadzenieId)
-//    }
-//
-//    // Pobieramy dane i stan ładowania
-//    val pomiary by viewModel.allPomiaryWithParameters.collectAsState()
-//    val isLoading by viewModel.isLoading.collectAsState()
-//
-//    when {
-//        isLoading -> {
-//            // Wyświetlamy stan ładowania
-//            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-//                Text(text = "Ładowanie danych...", style = MaterialTheme.typography.bodyLarge)
-//            }
-//        }
-//        pomiary.isEmpty() -> {
-//            // Wyświetlamy informację o braku danych
-//            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-//                Text(text = "Brak danych do wyświetlenia.", style = MaterialTheme.typography.bodyLarge)
-//            }
-//        }
-//        else -> {
-//            // Wyświetlamy wykres
-//            val modelProducer = remember { CartesianChartModelProducer() }
-//
-//
-//            LaunchedEffect(pomiary) {
-//                val (temperatury, czasy) = transformPomiaryToChartData(pomiary)
-//
-//                // Aktualizujemy model wykresu
-//                modelProducer.runTransaction {
-//                    lineSeries {
-//                        series(
-//                            x = czasy, //.map { it.toFloat() }, // Konwersja Long do Float dla wykresu
-//                            y = temperatury
-//                        )
-//                    }
-//                }
-//            }
-//
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .heightIn(min = 200.dp, max = 400.dp)
-//            ) {
-//
-//                CartesianChartHost(
-//                    rememberCartesianChart(
-//                        rememberLineCartesianLayer(),
-//                        startAxis = VerticalAxis.rememberStart(
-//                            itemPlacer = VerticalAxis.ItemPlacer.count(
-//                                count = { 8 } // Liczba etykiet do wyświetlenia na osi Y - MAX 8???
-//                            ),
-//                            valueFormatter = CartesianValueFormatter { _, y, _ ->
-//                                "%.1f".format(y) // Formatowanie wartości z jedną cyfrą po przecinku
-//                            }
-//                        ),
-//                        bottomAxis = HorizontalAxis.rememberBottom(
-//                            valueFormatter = CartesianValueFormatter { _, x, _ ->
-//                                // Formatowanie wartości osi X na HH:mm:ss dd-MM-yyyy
-//                                val date =
-//                                    Date(x.toLong()) // Konwersja wartości Float na Long i Date
-//                                val dateFormat =
-//                                    SimpleDateFormat("HH:mm:ss dd-MM-yyyy", Locale.getDefault())
-//                                dateFormat.format(date) // Zwracamy sformatowaną datę
-//                            }
-//                        )
-//                    ),
-//                    modelProducer = modelProducer
-//                )
-//            }
-//        }
-//    }
-//}
-
-// COMPOSE CHARTS
-
-//@Composable
-//fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
-//
-//    // Uruchamiamy ładowanie danych
-//    LaunchedEffect(urzadzenieId) {
-//        viewModel.loadAllPomiaryWithParameters(urzadzenieId)
-//    }
-//
-//    // Pobieramy dane i stan ładowania
-//    val pomiary by viewModel.allPomiaryWithParameters.collectAsState()
-//    val isLoading by viewModel.isLoading.collectAsState()
-//
-//    when {
-//        isLoading -> {
-//            // Wyświetlamy stan ładowania
-//            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-//                Text(text = "Ładowanie danych...", style = MaterialTheme.typography.bodyLarge)
-//            }
-//        }
-//
-//        pomiary.isEmpty() -> {
-//            // Wyświetlamy informację o braku danych
-//            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-//                Text(
-//                    text = "Brak danych do wyświetlenia.",
-//                    style = MaterialTheme.typography.bodyLarge
-//                )
-//            }
-//        }
-//
-//        else -> {
-//            val (temperatury, czasy) = transformPomiaryToChartData(pomiary)
-//
-////            val chartData = czasy.mapIndexed { index, time ->
-////                Bars(
-////                    label = SimpleDateFormat("HH:mm:ss dd-MM-yyyy", Locale.getDefault()).format(Date(time)),
-////                    values = listOf(
-////                        Bars.Data(value = temperatury[index].toDouble(), color = SolidColor(Color(0xFF6495ED)))
-////                    )
-////                )
-////            }
-//
-//            val lineData = listOf(
-//                Line(
-//                    label = "Temperatura",
-//                    values = temperatury.map { it.toDouble() }, // Temperatura na osi Y
-//                    color = SolidColor(Color(0xFF6495ED)),
-//                    firstGradientFillColor = Color(0xFF6495ED).copy(alpha = .5f),
-//                    secondGradientFillColor = Color.Transparent,
-//                    strokeAnimationSpec = tween(2000, easing = EaseInOutCubic),
-//                    gradientAnimationDelay = 1000,
-//                    drawStyle = DrawStyle.Stroke(width = 2.dp),
-//                )
-//            )
-//
-//            val labelProperties = LabelProperties(
-//                enabled = true,
-//                textStyle = MaterialTheme.typography.bodySmall,
-//                labels = czasy.map { time ->
-//                    // Formatowanie dat na osi X
-//                    val date = Date(time)
-//                    val hour = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
-//                    val day = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(date)
-//                    "$hour\n$day"
-//                },
-//                builder = { modifier, label, _, _ ->
-//                    // Własne formatowanie etykiet
-//                    Text(modifier = modifier, text = label)
-//                }
-//            )
-//
-//            val dotProperties = DotProperties(
-//                enabled = true,
-//                color = SolidColor(Color(0xFF6495ED)),
-//                strokeWidth = 4.dp,
-//                radius = 7.dp,
-//                strokeColor = SolidColor(Color(0xFF6495ED)),
-//            )
-//
-//            val dividerProperties = DividerProperties(
-//                enabled = true,
-//                xAxisProperties = LineProperties(color = SolidColor(Color.Gray), thickness = 2.dp),
-//                yAxisProperties = LineProperties(color = SolidColor(Color.Gray), thickness = 2.dp)
-//            )
-//
-//            val axisProperties = GridProperties.AxisProperties(
-//                enabled = true,
-//                style = StrokeStyle.Normal, // lub Dashed, zależnie od tego, co chcesz
-//                color = SolidColor(Color.Gray),
-//                thickness = 0.5.dp,
-//                lineCount = 2 // zmniejsz liczbę linii na osi, dostosuj według swoich danych
-//            )
-//
-//            val gridProperties = GridProperties(
-//                xAxisProperties = axisProperties
-//            )
-//
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .heightIn(min = 200.dp, max = 400.dp)
-//            ) {
-////                RowChart(
-////                    modifier = Modifier
-////                        .fillMaxSize()
-////                        .padding(horizontal = 22.dp),
-////                    data = remember { chartData },
-////                    barProperties = BarProperties(
-////                        cornerRadius = Bars.Data.Radius.Rectangle(topRight = 6.dp, topLeft = 6.dp),
-////                        spacing = 3.dp,
-////                        thickness = 20.dp
-////                    ),
-////                    animationSpec = spring(
-////                        dampingRatio = Spring.DampingRatioMediumBouncy,
-////                        stiffness = Spring.StiffnessLow
-////                    ),
-////                    minValue = 0.0,
-////                    maxValue = temperatury.map { it.toDouble() }.maxOrNull() ?: 50.0,
-////                )
-//
-//
-//                LineChart(
-//                    modifier = Modifier
-//                        .fillMaxSize()
-//                        .padding(horizontal = 22.dp),
-//                    data = remember { lineData },
-//                    animationMode = AnimationMode.Together(delayBuilder = {
-//                        it * 500L
-//                    }),
-//                    dotsProperties = dotProperties,
-//                    dividerProperties = dividerProperties,
-//                    gridProperties = gridProperties,
-//                    minValue = temperatury.map { it.toDouble() }.minOrNull() ?: 30.0,
-//                    maxValue = temperatury.map { it.toDouble() }.maxOrNull() ?: 50.0,
-//                    labelProperties = labelProperties
-//                )
-//
-//            }
-//        }
-//    }
-//}
-
-// YCHARTS
+//region temperature YCHARTS
 @Composable
-fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
+fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: Modifier) {
     // Uruchamiamy ładowanie danych
     LaunchedEffect(urzadzenieId) {
         viewModel.loadAllPomiaryWithParameters(urzadzenieId)
@@ -537,31 +328,23 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
             }
         }
         else -> {
-            //val steps = 5
-            val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-            //LaunchedEffect(pomiary) {
-            //val ppointsData: List<Point> = transformPomiaryToChartData(pomiary)
-            //}
-
-            val (pointsData, timestamps) = transformPomiaryToChartData(pomiary)
-
-            val temperatures = pointsData.map { it.y }
-            val minTemperature = temperatures.minOrNull() ?: 0f
-            val maxTemperature = temperatures.maxOrNull() ?: 100f
-            //val pointsData: List<Point> =
-              //  listOf(Point(0f, 40f), Point(1f, 90f), Point(2f, 0f), Point(3f, 60f), Point(4f, 10f))
-            //val yStep = (maxTemperature - minTemperature) / steps
-            val steps = 6
+            val (pointsData, timestamps) = transformTempMeasToChartData(pomiary)
+            val steps = 10
 
             val xAxisData = AxisData.Builder()
-                .axisStepSize(100.dp)
+                .axisStepSize(150.dp)
+                .axisLabelAngle(8f)
+                .bottomPadding(120.dp)
                 .backgroundColor(Color.Transparent)
                 .steps(pointsData.size - 1)
-                .labelData { i -> val timestamp = timestamps.getOrNull(i) ?: 0L
-                    dateFormat.format(Date(timestamp)) }
-                .labelAndAxisLinePadding(15.dp)
+                .labelData { i ->
+                    val timestamp = timestamps.getOrNull(i) ?: ""
+                    timestamp
+                }
+                .labelAndAxisLinePadding(5.dp)
                 .axisLineColor(MaterialTheme.colorScheme.tertiary)
                 .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
                 .build()
 
             val yAxisData = AxisData.Builder()
@@ -569,11 +352,14 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
                 .backgroundColor(Color.Transparent)
                 .labelAndAxisLinePadding(20.dp)
                 .labelData { i ->
-                    val stepSize = (maxTemperature - minTemperature) / steps
-                    String.format("%.1f", minTemperature + i * stepSize)
+                    val stepSize = (43f - 33f) / steps // Rozmiar kroku
+                    val value = 33f + i * stepSize
+                    String.format("%.1f °C", value) // Formatowanie z jednym miejscem po przecinku
                 }
                 .axisLineColor(MaterialTheme.colorScheme.tertiary)
                 .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .bottomPadding(20.dp)
                 .build()
 
             val lineChartData = LineChartData(
@@ -598,25 +384,31 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
                                     )
                                 )
                             ),
-                            SelectionHighlightPopUp()
+                            SelectionHighlightPopUp(
+                                popUpLabel = { _, y ->
+                                    "${String.format("%.1f", y)} °C"
+                                }
+                            )
                         )
                     ),
                 ),
                 xAxisData = xAxisData,
                 yAxisData = yAxisData,
                 gridLines = GridLines(color = MaterialTheme.colorScheme.outline),
-                backgroundColor = MaterialTheme.colorScheme.surface
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                bottomPadding = 30.dp
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 200.dp, max = 400.dp)
+                    .heightIn(min = 300.dp, max = 1000.dp)
+                    .padding(bottom = 24.dp)
             ) {
                 LineChart(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp),
+                        .height(500.dp),
                     lineChartData = lineChartData
                 )
             }
@@ -624,62 +416,473 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long) {
     }
 }
 
-fun transformPomiaryToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Point>, List<Long>> {
-    val dateFormat = SimpleDateFormat("HH:mm:ss dd-MM-yyyy", Locale.getDefault())
+fun transformTempMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Point>, List<String>> {
     val pointsData = mutableListOf<Point>()
-    val timestamps = mutableListOf<Long>()
+    val timestamps = mutableListOf<String>()
 
     pomiary.forEach { pomiarZParametrami ->
-        val timestamp = dateFormat.parse(pomiarZParametrami.pomiar.data)?.time ?: 0L
+        val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
+
         pomiarZParametrami.parametry
             .filter { it.nazwa == "temperatura" }
             .forEach { parametr ->
                 pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
-                timestamps.add(timestamp)
+                if (timestamp != null) {
+                    timestamps.add(timestamp)
+                }
             }
     }
 
+    val minGhostPoint = Point(-1f, 33f) // Punkt "widmo" z minimalną temperaturą
+    val maxGhostPoint = Point(pointsData.size.toFloat(), 43f) // Punkt "widmo" z maksymalną temperaturą
+    pointsData.add(0, minGhostPoint) // Dodanie na początek listy
+    pointsData.add(maxGhostPoint)    // Dodanie na koniec listy
+
+    timestamps.add(0, "") // Pusta etykieta dla punktu "widmo"
+    timestamps.add("")    // Pusta etykieta dla drugiego punktu "widmo"
+
     return Pair(pointsData, timestamps)
 }
+//endregion
 
+//region weight scale YCHARTS
+@Composable
+fun WeightScaleChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: Modifier) {
+    // Uruchamiamy ładowanie danych
+    LaunchedEffect(urzadzenieId) {
+        viewModel.loadAllPomiaryWithParameters(urzadzenieId)
+    }
 
-//fun transformPomiaryToChartData(pomiary: List<PomiarZParametrami>): List<Point> {
-//    val dateFormat = SimpleDateFormat("HH:mm:ss dd-MM-yyyy", Locale.getDefault())
-//    val pointsData = mutableListOf<Point>()
-//
-//    pomiary.forEach { pomiarZParametrami ->
-//
-//        val timestamp = dateFormat.parse(pomiarZParametrami.pomiar.data)?.time?.toFloat() ?: 0f
-//
-//        pomiarZParametrami.parametry
-//            .filter { it.nazwa == "temperatura" }
-//            .forEach { parametr ->
-//                pointsData.add(Point(timestamp, parametr.wartosc))
-//            }
-//    }
-//
-//    return pointsData
-//}
+    // Pobieramy dane i stan ładowania
+    val pomiary by viewModel.allPomiaryWithParameters.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-// VICO i COMPOSE CHARTS
-//fun transformPomiaryToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Float>, List<Long>> {
-//    val temperatury = mutableListOf<Float>()
-//    val czasy = mutableListOf<Long>()
+    when {
+        isLoading -> {
+            // Wyświetlamy stan ładowania
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Ładowanie danych...", style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        pomiary.isEmpty() -> {
+            // Wyświetlamy informację o braku danych
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Brak danych do wyświetlenia.", style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        else -> {
+            val (pointsData, timestamps) = transformWeightMeasToChartData(pomiary)
+            val minWeight = pointsData.minOfOrNull { it.y } ?: 0f
+            val maxWeight = pointsData.maxOfOrNull { it.y } ?: 0f
+            val steps = 5
+
+            val xAxisData = AxisData.Builder()
+                .axisStepSize(150.dp)
+                .axisLabelAngle(8f)
+                .bottomPadding(120.dp)
+                .backgroundColor(Color.Transparent)
+                .steps(pointsData.size - 1)
+                .labelData { i ->
+                    val timestamp = timestamps.getOrNull(i) ?: ""
+                    timestamp
+                }
+                .labelAndAxisLinePadding(5.dp)
+                .axisLineColor(MaterialTheme.colorScheme.tertiary)
+                .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .build()
+
+            val yAxisData = AxisData.Builder()
+                .steps(steps)
+                .backgroundColor(Color.Transparent)
+                .labelAndAxisLinePadding(20.dp)
+                .labelData { i ->
+                    // Rozmiar kroku w zależności od min i max
+                    val stepSize = (maxWeight - minWeight) / steps // Krok na osi Y
+                    val value = minWeight + i * stepSize // Wyliczanie wartości dla i-tego kroku na osi Y
+
+                    // Formatowanie wartości, dodanie jednostki "kg"
+                    String.format("%.1f kg", value)
+                }
+                .axisLineColor(MaterialTheme.colorScheme.tertiary)
+                .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .bottomPadding(20.dp)
+                .build()
+
+            val lineChartData = LineChartData(
+                linePlotData = LinePlotData(
+                    lines = listOf(
+                        Line(
+                            dataPoints = pointsData,
+                            LineStyle(
+                                color = MaterialTheme.colorScheme.tertiary,
+                                lineType = LineType.SmoothCurve(isDotted = false)
+                            ),
+                            IntersectionPoint(
+                                color = MaterialTheme.colorScheme.tertiary,
+                            ),
+                            SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
+                            ShadowUnderLine(
+                                alpha = 0.5f,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.inversePrimary,
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                            SelectionHighlightPopUp(
+                                popUpLabel = { _, y ->
+                                    "${String.format("%.1f", y)} kg"
+                                }
+                            )
+                        )
+                    ),
+                ),
+                xAxisData = xAxisData,
+                yAxisData = yAxisData,
+                gridLines = GridLines(color = MaterialTheme.colorScheme.outline),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                bottomPadding = 30.dp
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 300.dp, max = 1000.dp)
+                    .padding(bottom = 24.dp)
+            ) {
+                LineChart(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp),
+                    lineChartData = lineChartData
+                )
+            }
+        }
+    }
+}
+
+fun transformWeightMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Point>, List<String>> {
+    val pointsData = mutableListOf<Point>()
+    val timestamps = mutableListOf<String>()
+
+    pomiary.forEach { pomiarZParametrami ->
+        val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
+
+        pomiarZParametrami.parametry
+            .filter { it.nazwa == "waga" }
+            .forEach { parametr ->
+                pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
+                if (timestamp != null) {
+                    timestamps.add(timestamp)
+                }
+            }
+    }
+
+    // Znalezienie pierwszej i ostatniej wagi z punktów danych
+    val firstWeight = pointsData.firstOrNull()?.y ?: 0f
+    val lastWeight = pointsData.lastOrNull()?.y ?: 0f
+
+    // Utworzenie punktów widmo
+    val minGhostPoint = Point(-1f, firstWeight)
+    val maxGhostPoint = Point(pointsData.size.toFloat(), lastWeight)
+
+    // Dodanie punktów widmo do listy
+    pointsData.add(0, minGhostPoint) // Dodanie na początek listy
+    pointsData.add(maxGhostPoint)    // Dodanie na koniec listy
+
+    timestamps.add(0, "") // Pusta etykieta dla punktu "widmo"
+    timestamps.add("")    // Pusta etykieta dla drugiego punktu "widmo"
+
+    return Pair(pointsData, timestamps)
+}
+//endregion
+
+//region bpm YCHARTS
+@Composable
+fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: Modifier) {
+    // Uruchamiamy ładowanie danych
+    LaunchedEffect(urzadzenieId) {
+        viewModel.loadAllPomiaryWithParameters(urzadzenieId)
+    }
+
+    // Pobieramy dane i stan ładowania
+    val pomiary by viewModel.allPomiaryWithParameters.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    when {
+        isLoading -> {
+            // Wyświetlamy stan ładowania
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Ładowanie danych...", style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        pomiary.isEmpty() -> {
+            // Wyświetlamy informację o braku danych
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Brak danych do wyświetlenia.", style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        else -> {
+
+            val (allPointsData, timestamps) = transformBPMMeasToChartData(pomiary)
+
+            // Rozdzielanie list punktów (każda lista zawiera punkty dla jednego parametru)
+            val pointsDataSYS = allPointsData[0] // Punkty dla SYS
+            val pointsDataDIA = allPointsData[1] // Punkty dla DIA
+            val pointsDataMAP = allPointsData[2] // Punkty dla MAP
+            val pointsDataPulse = allPointsData[3] // Punkty dla Pulse
+
+            // Wersja ze zmiennym zakresem
+//            val minSYS = pointsDataSYS.minOfOrNull { it.y } ?: 0f
+//            val maxSYS = pointsDataSYS.maxOfOrNull { it.y } ?: 0f
+//            val minDIA = pointsDataDIA.minOfOrNull { it.y } ?: 0f
+//            val maxDIA = pointsDataDIA.maxOfOrNull { it.y } ?: 0f
+//            val minMAP = pointsDataMAP.minOfOrNull { it.y } ?: 0f
+//            val maxMAP = pointsDataMAP.maxOfOrNull { it.y } ?: 0f
+//            val minPulse = pointsDataPulse.minOfOrNull { it.y } ?: 0f
+//            val maxPulse = pointsDataPulse.maxOfOrNull { it.y } ?: 0f
+
+            val steps = 13
+
+            val xAxisData = AxisData.Builder()
+                .axisStepSize(150.dp)
+                .axisLabelAngle(8f)
+                .bottomPadding(120.dp)
+                .backgroundColor(Color.Transparent)
+                .steps(pointsDataSYS.size - 1)
+                .labelData { i ->
+                    val timestamp = timestamps.getOrNull(i) ?: ""
+                    timestamp
+                }
+                .labelAndAxisLinePadding(5.dp)
+                .axisLineColor(MaterialTheme.colorScheme.tertiary)
+                .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .build()
+
+            val yAxisData = AxisData.Builder()
+                .steps(steps)
+                .backgroundColor(Color.Transparent)
+                .labelAndAxisLinePadding(20.dp)
+                .labelData { i ->
+                    val stepSize = (299f - 0f) / steps // Rozmiar kroku
+                    val value = 0f + i * stepSize
+                    String.format("%.0f mmHg", value)
+                }
+                .axisLineColor(MaterialTheme.colorScheme.tertiary)
+                .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .bottomPadding(20.dp)
+                .build()
+
+            val lineChartData = LineChartData(
+                linePlotData = LinePlotData(
+                    lines = listOf(
+                        Line(
+                            dataPoints = pointsDataSYS,
+                            LineStyle(
+                                color = MaterialTheme.colorScheme.tertiary,
+                                lineType = LineType.SmoothCurve(isDotted = false)
+                            ),
+                            IntersectionPoint(
+                                color = MaterialTheme.colorScheme.tertiary,
+                            ),
+                            SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
+                            ShadowUnderLine(
+                                alpha = 0.5f,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.inversePrimary,
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                            SelectionHighlightPopUp(
+                                popUpLabel = { _, y ->
+                                    "${String.format("%.0f", y)} mmHg"
+                                }
+                            )
+                        ),
+                        Line(
+                            dataPoints = pointsDataDIA,
+                            LineStyle(
+                                color = MaterialTheme.colorScheme.tertiary,
+                                lineType = LineType.SmoothCurve(isDotted = false)
+                            ),
+                            IntersectionPoint(
+                                color = MaterialTheme.colorScheme.tertiary,
+                            ),
+                            SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
+                            ShadowUnderLine(
+                                alpha = 0.5f,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.inversePrimary,
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                            SelectionHighlightPopUp(
+                                popUpLabel = { _, y ->
+                                    "${String.format("%.0f", y)} mmHg"
+                                }
+                            )
+                        ),
+                        Line(
+                            dataPoints = pointsDataMAP,
+                            LineStyle(
+                                color = MaterialTheme.colorScheme.tertiary,
+                                lineType = LineType.SmoothCurve(isDotted = false)
+                            ),
+                            IntersectionPoint(
+                                color = MaterialTheme.colorScheme.tertiary,
+                            ),
+                            SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
+                            ShadowUnderLine(
+                                alpha = 0.5f,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.inversePrimary,
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                            SelectionHighlightPopUp(
+                                popUpLabel = { _, y ->
+                                    "${String.format("%.0f", y)} mmHg"
+                                }
+                            )
+                        )
+                    ),
+                ),
+                xAxisData = xAxisData,
+                yAxisData = yAxisData,
+                gridLines = GridLines(color = MaterialTheme.colorScheme.outline),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                bottomPadding = 30.dp
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 300.dp, max = 1000.dp)
+                    .padding(bottom = 24.dp)
+            ) {
+                LineChart(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp),
+                    lineChartData = lineChartData
+                )
+            }
+        }
+    }
+}
+
+fun transformBPMMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<List<Point>>, List<String>> {
+    val pointsDataSYS = mutableListOf<Point>()
+    val pointsDataDIA = mutableListOf<Point>()
+    val pointsDataMAP = mutableListOf<Point>()
+    val pointsDataPulse = mutableListOf<Point>()
+    val timestamps = mutableListOf<String>()
+
+    pomiary.forEach { pomiarZParametrami ->
+        val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
+        if (timestamp != null) {
+            timestamps.add(timestamp)
+        }
+
+        pomiarZParametrami.parametry.forEach { parametr ->
+            // Filtr dla "SYS"
+            if (parametr.nazwa == "SYS") {
+                pointsDataSYS.add(Point(pointsDataSYS.size.toFloat(), parametr.wartosc))
+            }
+            // Filtr dla "DIA"
+            if (parametr.nazwa == "DIA") {
+                pointsDataDIA.add(Point(pointsDataDIA.size.toFloat(), parametr.wartosc))
+            }
+            // Filtr dla "MAP"
+            if (parametr.nazwa == "MAP") {
+                pointsDataMAP.add(Point(pointsDataMAP.size.toFloat(), parametr.wartosc))
+            }
+            // Filtr dla "Pulse"
+            if (parametr.nazwa == "puls") {
+                pointsDataPulse.add(Point(pointsDataPulse.size.toFloat(), parametr.wartosc))
+            }
+        }
+    }
+
+    // Wersja z dynamicznym dostosowaniem osi Y
+//    // Znalezienie pierwszej i ostatniej SYS z punktów danych
+//    val firstSYS = pointsDataSYS.firstOrNull()?.y ?: 0f
+//    val lastSYS = pointsDataSYS.lastOrNull()?.y ?: 0f
+//    // Znalezienie pierwszej i ostatniej DIA z punktów danych
+//    val firstDIA = pointsDataDIA.firstOrNull()?.y ?: 0f
+//    val lastDIA = pointsDataDIA.lastOrNull()?.y ?: 0f
+//    // Znalezienie pierwszej i ostatniej MAP z punktów danych
+//    val firstMAP = pointsDataMAP.firstOrNull()?.y ?: 0f
+//    val lastMAP = pointsDataMAP.lastOrNull()?.y ?: 0f
+//    // Znalezienie pierwszej i ostatniej Pulse z punktów danych
+//    val firstPulse = pointsDataPulse.firstOrNull()?.y ?: 0f
+//    val lastPulse = pointsDataPulse.lastOrNull()?.y ?: 0f
 //
-//    val dateFormat = SimpleDateFormat("HH:mm:ss dd-MM-yyyy", Locale.getDefault())
+//    // Utworzenie punktów widmo
+//    val minGhostPointSYS = Point(-1f, firstSYS)
+//    val maxGhostPointSYS = Point(pointsDataSYS.size.toFloat(), lastSYS)
+//    val minGhostPointDIA = Point(-1f, firstDIA)
+//    val maxGhostPointDIA = Point(pointsDataDIA.size.toFloat(), lastDIA)
+//    val minGhostPointMAP = Point(-1f, firstMAP)
+//    val maxGhostPointMAP = Point(pointsDataMAP.size.toFloat(), lastMAP)
+//    val minGhostPointPulse = Point(-1f, firstPulse)
+//    val maxGhostPointPulse = Point(pointsDataPulse.size.toFloat(), lastPulse)
 //
-//    pomiary.forEach { pomiarZParametrami ->
-//
-//        val timestamp = dateFormat.parse(pomiarZParametrami.pomiar.data)?.time ?: 0L
-//
-//        pomiarZParametrami.parametry
-//            .filter { it.nazwa == "temperatura" }
-//            .forEach { parametr ->
-//                temperatury.add(parametr.wartosc)
-//                czasy.add(timestamp)
-//            }
-//    }
-//
-//    return Pair(temperatury, czasy)
-//}
+//    // Dodanie punktów widmo do list
+//    pointsDataSYS.add(0, minGhostPointSYS)
+//    pointsDataSYS.add(maxGhostPointSYS)
+//    pointsDataDIA.add(0, minGhostPointDIA)
+//    pointsDataDIA.add(maxGhostPointDIA)
+//    pointsDataMAP.add(0, minGhostPointMAP)
+//    pointsDataMAP.add(maxGhostPointMAP)
+//    pointsDataPulse.add(0, minGhostPointPulse)
+//    pointsDataPulse.add(maxGhostPointPulse)
+
+    // Wersja ze stałym zakresem
+    val minGhostPoint = Point(-1f, 0f) // Punkt "widmo" minimalny
+    val maxGhostPoint = Point(pointsDataSYS.size.toFloat(), 299f) // Punkt "widmo" maksymalny
+    val minGhostPointPulse = Point(-1f, 40f)
+    val maxGhostPointPulse = Point(pointsDataPulse.size.toFloat(), 180f)
+
+    pointsDataSYS.add(0, minGhostPoint) // Dodanie na początek listy
+    pointsDataSYS.add(maxGhostPoint)    // Dodanie na koniec listy
+    pointsDataDIA.add(0, minGhostPoint)
+    pointsDataDIA.add(maxGhostPoint)
+    pointsDataMAP.add(0, minGhostPoint)
+    pointsDataMAP.add(maxGhostPoint)
+    pointsDataPulse.add(0, minGhostPointPulse)
+    pointsDataPulse.add(maxGhostPointPulse)
+
+    timestamps.add(0, "") // Pusta etykieta dla punktu "widmo"
+    timestamps.add("")    // Pusta etykieta dla drugiego punktu "widmo"
+
+    val allPointsData = listOf(pointsDataSYS, pointsDataDIA, pointsDataMAP, pointsDataPulse)
+
+    return Pair(allPointsData, timestamps)
+}
+//endregion
+
+fun convertIsoToCustomFormat(isoDate: String): String? {
+    val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME // ISO 8601
+    val customFormatter = DateTimeFormatter.ofPattern("HH:mm dd-MM-yyyy") // Pożądany format
+
+    // Parsowanie daty ISO i konwersja na wymagany format
+    return try {
+        val dateTime = LocalDateTime.parse(isoDate, isoFormatter)
+        dateTime.format(customFormatter)
+    } catch (e: Exception) {
+        null // W przypadku niepoprawnego formatu
+    }
+}
 

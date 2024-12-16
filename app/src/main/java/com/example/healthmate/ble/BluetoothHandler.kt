@@ -138,17 +138,12 @@ class BluetoothHandler(
             return false // Zwróć false, jeśli nie chcemy połączyć się ponownie
         }
 
-//        if (hasBluetoothPermission()) {
-//            checkAndRequestBluetoothPermission()
-//            return false
-//        }
-
         Log.i(TAG, "Attempting to connect to GATT server for device: ${device.name}")
         if (hasBluetoothPermission()) {
             bluetoothAdapter.let { adapter ->
                 return try {
                     bluetoothGatt = device.connectGatt(activity, false, bluetoothGattCallback)
-                    Log.e(TAG, "Status: ${bluetoothGatt != null}")
+                    Log.e(TAG, "Status: ${bluetoothGatt != null} for ${device.name}")
                     return bluetoothGatt != null //bluetoothGatt?.connect() == true
 
                 } catch (e: SecurityException) {
