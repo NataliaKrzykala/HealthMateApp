@@ -12,6 +12,10 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -66,10 +70,6 @@ class BluetoothHandler(
         DISCONNECTING,
         DISCONNECTED,
         UNKNOWN;
-
-        fun isActive() = (this == CONNECTING || this == CONNECTED)
-
-        fun toTitle() = this.name.lowercase().replaceFirstChar { it.uppercase() }
     }
     //endregion
 
@@ -85,18 +85,23 @@ class BluetoothHandler(
     private val bluetoothPermissionLauncher =
         activityResultRegistry.register(
             "bluetooth_permission_request",
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val isBluetoothScanGranted = permissions[Manifest.permission.BLUETOOTH_SCAN] == true
+            val isBluetoothConnectGranted = permissions[Manifest.permission.BLUETOOTH_CONNECT] == true
+
+            if (isBluetoothScanGranted && isBluetoothConnectGranted) {
                 btPermission = true
+                // Po przyznaniu uprawnień, jeśli Bluetooth nie jest włączony, włącz go
                 if (bluetoothAdapter?.isEnabled == false) {
                     val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                     btActivityResultLauncher.launch(enableBtIntent)
                 } else {
-                    onScanResult()
+                    onScanResult() // Kontynuuj operację skanowania
                 }
             } else {
                 btPermission = false
+                // Obsłuż przypadek, gdy uprawnienia są odrzucone
             }
         }
 
@@ -114,7 +119,8 @@ class BluetoothHandler(
     //region Connect & permission functions
     fun hasBluetoothPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+                    activity.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
         } else {
             activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
         }
@@ -122,11 +128,75 @@ class BluetoothHandler(
 
     fun checkAndRequestBluetoothPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            bluetoothPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                )
+            )
         } else {
-            bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADMIN)
+            bluetoothPermissionLauncher.launch(
+                arrayOf(Manifest.permission.BLUETOOTH_ADMIN)
+            )
         }
     }
+    //endregion
+
+//    private val bluetoothPermissionLauncher =
+//        activityResultRegistry.register(
+//            "bluetooth_permission_request",
+//            ActivityResultContracts.RequestPermission()
+//        ) { isGranted: Boolean ->
+//            if (isGranted) {
+//                btPermission = true
+//                if (bluetoothAdapter?.isEnabled == false) {
+//                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+//                    btActivityResultLauncher.launch(enableBtIntent)
+//                } else {
+//                    onScanResult()
+//                }
+//            } else {
+//                btPermission = false
+//            }
+//        }
+//
+//    private val btActivityResultLauncher =
+//        activityResultRegistry.register(
+//            "bt_activity_result",
+//            ActivityResultContracts.StartActivityForResult()
+//        ) { result ->
+//            if (result.resultCode == Activity.RESULT_OK) {
+//                onScanResult()
+//            }
+//        }
+//
+//
+//    //endregion
+//
+//    //region Connect & permission functions
+//    fun hasBluetoothPermission(): Boolean {
+//        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
+//            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+//        } else {
+//            activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
+//        }
+//    }
+//
+//    fun checkAndRequestBluetoothPermission() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            bluetoothPermissionLauncher.launch(
+//                arrayOf(
+//                    Manifest.permission.BLUETOOTH_SCAN,
+//                    Manifest.permission.BLUETOOTH_CONNECT
+//                ).toString()
+//            )
+//        } else {
+//            bluetoothPermissionLauncher.launch(
+//                arrayOf(Manifest.permission.BLUETOOTH_ADMIN).toString()
+//            )
+//        }
+//    }
 
     fun bluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled == true
@@ -187,7 +257,7 @@ class BluetoothHandler(
 
     //region Enable indication functions (write descriptor, enable indication/notifications)
     suspend fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
-        updateDateTime(services)
+        //updateDateTime(services)
         when (deviceType) {
             is Thermometer -> {
                 val characteristic = services
@@ -346,8 +416,8 @@ class BluetoothHandler(
 
         // Zgłoś typ urządzenia poprzez callback
         deviceType?.let {
-            onDeviceConnectedCallback?.invoke(it)
             Log.e("Bluetooth", "Callback invoked with: $it , ${it.name}")
+            onDeviceConnectedCallback?.invoke(it)
         } ?: run {
             Log.e("Bluetooth", "Unknown device type, callback not invoked")
             //onDeviceConnectedCallback?.invoke(null)
@@ -481,6 +551,294 @@ class BluetoothHandler(
 //    }
 
 
+//    private val scanCallback = object : BluetoothAdapter.LeScanCallback {
+//        //@SuppressLint("MissingPermission")
+//        override fun onLeScan(device: BluetoothDevice?, rssi: Int, scanRecord: ByteArray?) {
+//            if (!hasBluetoothPermission()) {
+//                checkAndRequestBluetoothPermission()
+//                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//                return
+//            }
+//            device?.let {
+//                Log.e("BluetoothHandler", "Device found: ${device.name} (${device.address})")
+//                // Warunek dla urządzeń, które chcesz połączyć
+//                if (device.name.contains("A&D") || device.name.contains("nRF")) {
+//                    Log.e("BluetoothHandler", "Attempting to connect to device: ${device.name}")
+//                    connectToGattServer(device)
+//                }
+//            }
+//        }
+//    }
+//
+//    fun startScanning() {
+//        if (!hasBluetoothPermission()) {
+//            checkAndRequestBluetoothPermission()
+//            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//            return
+//        }
+//
+//        if (bluetoothAdapter?.isEnabled == true) {
+//            bluetoothAdapter?.startLeScan(scanCallback)
+//            Log.e("BluetoothHandler", "Started scanning for BLE devices.")
+//        } else {
+//            Log.e("BluetoothHandler", "Bluetooth is disabled. Cannot start scan.")
+//        }
+//    }
+//
+//    fun stopScanning() {
+//        if (!hasBluetoothPermission()) {
+//            checkAndRequestBluetoothPermission()
+//            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//            return
+//        }
+//
+//        bluetoothAdapter?.stopLeScan(scanCallback)
+//        Log.e("BluetoothHandler", "Stopped scanning for BLE devices.")
+//    }
+
+    var onDeviceFoundCallback: ((BluetoothDevice) -> Unit)? = null
+
+
+//    private val leScanCallback: ScanCallback = object : ScanCallback() {
+//        override fun onScanResult(callbackType: Int, result: ScanResult) {
+//            super.onScanResult(callbackType, result)
+//
+//            if (!hasBluetoothPermission()) {
+//                checkAndRequestBluetoothPermission()
+//                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//                return
+//            }
+//
+//            Log.e("ConnectionManager", "Result")
+//            // Jeśli urządzenie zostało znalezione, logujemy jego nazwę i adres
+//            val device = result.device
+//            Log.e("ConnectionManager", "Device found: ${device.name} (${device.address})")
+//
+//            // Możesz dodać dodatkowe warunki, np. na podstawie nazwy urządzenia:
+//            if (device.name != null && (device.name.contains("A&D") || device.name.contains("nRF"))) {
+//                Log.e("ConnectionManager", "Found target device: ${device.name}")
+//                //stopScan()
+//            }
+//        }
+//            //leDeviceListAdapter.addDevice(result.device)
+//            //leDeviceListAdapter.notifyDataSetChanged()
+//    }
+//
+//    private val bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+//    private var scanning = false
+//    private val handler = Handler()
+//
+//    // Stops scanning after 10 seconds.
+//    private val SCAN_PERIOD: Long = 10000
+//
+//    fun scanLeDevice() {
+//                    if (!hasBluetoothPermission()) {
+//                checkAndRequestBluetoothPermission()
+//                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//                return
+//            }
+//        if (!scanning) { // Stops scanning after a pre-defined scan period.
+//            handler.postDelayed({
+//                scanning = false
+//                bluetoothLeScanner?.stopScan(leScanCallback)
+//                Log.e("ConnectionManager", "Post delayed")
+//
+//            }, SCAN_PERIOD)
+//            scanning = true
+//            bluetoothLeScanner?.startScan(leScanCallback)
+//            Log.e("ConnectionManager", "Scanning...")
+//
+//        } else {
+//            scanning = false
+//            bluetoothLeScanner?.stopScan(leScanCallback)
+//            Log.e("ConnectionManager", "Stopped scanning")
+//
+//        }
+//    }
+
+    // SCANNING WERSJA 2
+//    private val scanCallback = object : BluetoothAdapter.LeScanCallback {
+//        override fun onLeScan(device: BluetoothDevice?, rssi: Int, scanRecord: ByteArray?) {
+//
+//            if (!hasBluetoothPermission()) {
+//                checkAndRequestBluetoothPermission()
+//                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//                return
+//            }
+//
+//            device?.let {
+//                Log.e("BluetoothHandler", "Device found: ${device.name} (${device.address})")
+//                // Warunek dla urządzeń, które chcesz połączyć
+//                if (device.name.contains("A&D") || device.name.contains("nRF")) {
+//                    Log.e("BluetoothHandler", "Attempting to connect to device: ${device.name}")
+//                    connectToGattServer(device)
+//                }
+//            }
+//        }
+//    }
+//
+//    fun startScanning() {
+//        if (!hasBluetoothPermission()) {
+//            checkAndRequestBluetoothPermission()
+//            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//            return
+//        }
+//        if (bluetoothAdapter?.isEnabled == true) {
+//            bluetoothAdapter?.startLeScan(scanCallback)
+//            Log.e("BluetoothHandler", "Started scanning for BLE devices.")
+//        } else {
+//            Log.e("BluetoothHandler", "Bluetooth is disabled. Cannot start scan.")
+//        }
+//    }
+//
+//    fun stopScanning() {
+//        if (!hasBluetoothPermission()) {
+//            checkAndRequestBluetoothPermission()
+//            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//            return
+//        }
+//        bluetoothAdapter?.stopLeScan(scanCallback)
+//        Log.e("BluetoothHandler", "Stopped scanning for BLE devices.")
+//    }
+
+
+    //SCANNING WERSJA 1
+
+    //private val scanResults = mutableListOf<ScanResult>()
+    private val processedDevices = mutableSetOf<String>()
+
+    private val bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+    private val scanCallback = object : ScanCallback() {
+//        override fun onScanResult(callbackType: Int, result: ScanResult) {
+//            Log.e("BluetoothHandler", "onScanResult called: ${result.device.name} (${result.device.address})")
+//            if (!hasBluetoothPermission()) {
+//                checkAndRequestBluetoothPermission()
+//                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//                return
+//            }
+//            super.onScanResult(callbackType, result)
+//            val device = result.device
+//            Log.e("BluetoothHandler", "Device found: ${device.name} (${device.address})")
+//            // Zbieranie wyników w trakcie skanowania
+//            scanResults.add(result)
+//        }
+
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            Log.e("BluetoothHandler", "Device found: ${result.device.name} (${result.device.address})")
+            if (!hasBluetoothPermission()) {
+                checkAndRequestBluetoothPermission()
+                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+                return
+            }
+            // Ignorujemy urządzenia, które już przetworzyliśmy
+            val deviceAddress = result.device.address
+            if (processedDevices.contains(deviceAddress)) {
+                Log.e("BluetoothHandler", "Device already processed: $deviceAddress")
+                return
+            }
+
+            // Dodajemy urządzenie do listy przetworzonych
+            processedDevices.add(deviceAddress)
+
+            // Sprawdzamy, czy urządzenie spełnia nasze kryteria
+            val deviceName = result.device.name
+            if (deviceName?.contains("A&D") == true || deviceName?.contains("nRF") == true) {
+                Log.e("BluetoothHandler", "Matching device found: $deviceName ($deviceAddress)")
+
+                // Zatrzymujemy skanowanie
+                stopScanning()
+
+                // Próba połączenia z urządzeniem
+                connectToGattServer(result.device)
+            }
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>) {
+            if (!hasBluetoothPermission()) {
+                checkAndRequestBluetoothPermission()
+                Log.e("ConnectionManager", "Bluetooth permissions not granted")
+                return
+            }
+            Log.e("BluetoothHandler", "Batch result")
+            super.onBatchScanResults(results)
+            //scanResults.addAll(results)
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            super.onScanFailed(errorCode)
+            Log.e("BluetoothHandler", "Scan failed with error: $errorCode")
+            when (errorCode) {
+                ScanCallback.SCAN_FAILED_ALREADY_STARTED -> Log.e("BluetoothHandler", "Scan already started")
+                ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> Log.e("BluetoothHandler", "Application registration failed")
+                ScanCallback.SCAN_FAILED_INTERNAL_ERROR -> Log.e("BluetoothHandler", "Internal error")
+                ScanCallback.SCAN_FAILED_FEATURE_UNSUPPORTED -> Log.e("BluetoothHandler", "Feature unsupported")
+                else -> Log.e("BluetoothHandler", "Unknown scan failure")
+            }
+
+            stopScanning()
+        }
+    }
+
+    //@SuppressLint("MissingPermission")
+    fun startScanning() {
+        if (!hasBluetoothPermission()) {
+            checkAndRequestBluetoothPermission()
+            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+            return
+        }
+
+        val scanSettings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(0) //500
+            .build()
+
+//        val scanFilters = listOf(
+//            ScanFilter.Builder().setDeviceName("A&D").build(),
+//            ScanFilter.Builder().setDeviceName("nRF").build()
+//        )
+
+        val scanFilters = listOf<ScanFilter>() // Brak filtrów, aby znaleźć wszystkie urządzenia
+
+        bluetoothLeScanner?.startScan(scanFilters, scanSettings, scanCallback)
+        Log.e("BluetoothHandler", "Started scanning with filters.")
+
+//        Handler(Looper.getMainLooper()).postDelayed({
+//            stopScanning() // Zatrzymaj skanowanie po określonym czasie
+//            //analyzeResults()
+//        }, 10000) // Czekaj 10 sekund
+    }
+
+    fun stopScanning() {
+        if (!hasBluetoothPermission()) {
+            checkAndRequestBluetoothPermission()
+            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+            return
+        }
+
+        bluetoothLeScanner?.stopScan(scanCallback)
+        Log.e("BluetoothHandler", "Stopped scanning")
+    }
+
+//    private fun analyzeResults() {
+//
+//        if (!hasBluetoothPermission()) {
+//            checkAndRequestBluetoothPermission()
+//            Log.e("ConnectionManager", "Bluetooth permissions not granted")
+//            return
+//        }
+//        // Teraz po zakończeniu skanowania analizujemy wyniki
+//        scanResults.forEach { result ->
+//            if (result.device.name?.contains("A&D") == true || result.device.name?.contains("nRF") == true) {
+//                Log.e("BluetoothHandler", "Attempting to connect to device: ${result.device.name}")
+//                result.device?.let { device ->
+//                    onDeviceFoundCallback?.invoke(device)
+//                }
+//            }
+//        }
+//        // Po analizie wyników możesz wyczyścić listę
+//        scanResults.clear()
+//    }
+
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
 //        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -515,15 +873,13 @@ class BluetoothHandler(
             when (newState) {
                 BluetoothProfile.STATE_CONNECTING -> {
                     Log.e(TAG, "Connecting to device...")
-                    onConnectionStateChanged?.let { it(ConnectionState.CONNECTING) }
+                    onConnectionStateChanged?.invoke(ConnectionState.CONNECTING)
                 }
 
                 BluetoothProfile.STATE_CONNECTED -> {
                     Log.i(TAG, "Connected to GATT server: ${gatt.device.name}")
-                    onConnectionStateChanged?.let {
-                        Log.e(TAG, "Emitting ConnectionState.CONNECTED for ${gatt.device.name}")
-                        it(ConnectionState.CONNECTED)
-                    }
+                    Log.e(TAG, "Emitting ConnectionState.CONNECTED for ${gatt.device.name}")
+                    onConnectionStateChanged?.invoke(ConnectionState.CONNECTED)
                     connectedDevice = gatt.device
                     try {
                         gatt.discoverServices()
@@ -539,19 +895,10 @@ class BluetoothHandler(
 
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     Log.i(TAG, "Disconnected from GATT server: ${gatt.device.name}")
+                    Log.e(TAG, "Emitting ConnectionState.DISCONNECTED for ${gatt.device.name}")
+                    onConnectionStateChanged?.invoke(ConnectionState.DISCONNECTED)
                     bluetoothGatt?.close()
-                    onConnectionStateChanged?.let {
-                        Log.e(TAG, "Emitting ConnectionState.DISCONNECTED for ${gatt.device.name}")
-                        it(ConnectionState.DISCONNECTED)
-                    }
                     connectedDevice = null
-                    try {
-                        //gatt.disconnect()
-                        //gatt.close()
-                        //bluetoothGatt = null
-                    } catch (e: SecurityException) {
-                        Log.e(TAG, "SecurityException: ${e.message}")
-                    }
                 }
 
 

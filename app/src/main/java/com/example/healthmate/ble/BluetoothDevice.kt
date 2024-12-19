@@ -41,7 +41,7 @@ class Thermometer : BluetoothDev() {
 
     @Composable
     override fun parseData(characteristicValue: ByteArray?): Map<String, Any> {
-        Log.e("Bluetooth", "Byte array: ${characteristicValue?.toHexString()}")
+        Log.e("Bluetooth", "Thermometer: ${characteristicValue?.toHexString()}")
         val resultMap = mutableMapOf<String, Any>()
         characteristicValue?.let {
 

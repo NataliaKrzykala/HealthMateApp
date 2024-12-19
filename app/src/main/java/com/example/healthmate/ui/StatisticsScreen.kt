@@ -6,6 +6,7 @@ import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -22,9 +23,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
@@ -635,16 +639,6 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
             val pointsDataMAP = allPointsData[2] // Punkty dla MAP
             val pointsDataPulse = allPointsData[3] // Punkty dla Pulse
 
-            // Wersja ze zmiennym zakresem
-//            val minSYS = pointsDataSYS.minOfOrNull { it.y } ?: 0f
-//            val maxSYS = pointsDataSYS.maxOfOrNull { it.y } ?: 0f
-//            val minDIA = pointsDataDIA.minOfOrNull { it.y } ?: 0f
-//            val maxDIA = pointsDataDIA.maxOfOrNull { it.y } ?: 0f
-//            val minMAP = pointsDataMAP.minOfOrNull { it.y } ?: 0f
-//            val maxMAP = pointsDataMAP.maxOfOrNull { it.y } ?: 0f
-//            val minPulse = pointsDataPulse.minOfOrNull { it.y } ?: 0f
-//            val maxPulse = pointsDataPulse.maxOfOrNull { it.y } ?: 0f
-
             val steps = 13
 
             val xAxisData = AxisData.Builder()
@@ -709,11 +703,11 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
                         Line(
                             dataPoints = pointsDataDIA,
                             LineStyle(
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                                 lineType = LineType.SmoothCurve(isDotted = false)
                             ),
                             IntersectionPoint(
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.surfaceTint,
                             ),
                             SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
                             ShadowUnderLine(
@@ -734,11 +728,11 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
                         Line(
                             dataPoints = pointsDataMAP,
                             LineStyle(
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.surfaceDim,
                                 lineType = LineType.SmoothCurve(isDotted = false)
                             ),
                             IntersectionPoint(
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.surfaceDim,
                             ),
                             SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
                             ShadowUnderLine(
@@ -771,12 +765,19 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
                     .heightIn(min = 300.dp, max = 1000.dp)
                     .padding(bottom = 24.dp)
             ) {
-                LineChart(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(500.dp),
-                    lineChartData = lineChartData
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Wykres linii
+                    LineChart(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp),
+                        lineChartData = lineChartData
+                    )
+                    // Legenda pod wykresem
+                    ChartLegend()
+                }
             }
         }
     }
@@ -815,40 +816,6 @@ fun transformBPMMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Li
         }
     }
 
-    // Wersja z dynamicznym dostosowaniem osi Y
-//    // Znalezienie pierwszej i ostatniej SYS z punktów danych
-//    val firstSYS = pointsDataSYS.firstOrNull()?.y ?: 0f
-//    val lastSYS = pointsDataSYS.lastOrNull()?.y ?: 0f
-//    // Znalezienie pierwszej i ostatniej DIA z punktów danych
-//    val firstDIA = pointsDataDIA.firstOrNull()?.y ?: 0f
-//    val lastDIA = pointsDataDIA.lastOrNull()?.y ?: 0f
-//    // Znalezienie pierwszej i ostatniej MAP z punktów danych
-//    val firstMAP = pointsDataMAP.firstOrNull()?.y ?: 0f
-//    val lastMAP = pointsDataMAP.lastOrNull()?.y ?: 0f
-//    // Znalezienie pierwszej i ostatniej Pulse z punktów danych
-//    val firstPulse = pointsDataPulse.firstOrNull()?.y ?: 0f
-//    val lastPulse = pointsDataPulse.lastOrNull()?.y ?: 0f
-//
-//    // Utworzenie punktów widmo
-//    val minGhostPointSYS = Point(-1f, firstSYS)
-//    val maxGhostPointSYS = Point(pointsDataSYS.size.toFloat(), lastSYS)
-//    val minGhostPointDIA = Point(-1f, firstDIA)
-//    val maxGhostPointDIA = Point(pointsDataDIA.size.toFloat(), lastDIA)
-//    val minGhostPointMAP = Point(-1f, firstMAP)
-//    val maxGhostPointMAP = Point(pointsDataMAP.size.toFloat(), lastMAP)
-//    val minGhostPointPulse = Point(-1f, firstPulse)
-//    val maxGhostPointPulse = Point(pointsDataPulse.size.toFloat(), lastPulse)
-//
-//    // Dodanie punktów widmo do list
-//    pointsDataSYS.add(0, minGhostPointSYS)
-//    pointsDataSYS.add(maxGhostPointSYS)
-//    pointsDataDIA.add(0, minGhostPointDIA)
-//    pointsDataDIA.add(maxGhostPointDIA)
-//    pointsDataMAP.add(0, minGhostPointMAP)
-//    pointsDataMAP.add(maxGhostPointMAP)
-//    pointsDataPulse.add(0, minGhostPointPulse)
-//    pointsDataPulse.add(maxGhostPointPulse)
-
     // Wersja ze stałym zakresem
     val minGhostPoint = Point(-1f, 0f) // Punkt "widmo" minimalny
     val maxGhostPoint = Point(pointsDataSYS.size.toFloat(), 299f) // Punkt "widmo" maksymalny
@@ -870,6 +837,42 @@ fun transformBPMMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Li
     val allPointsData = listOf(pointsDataSYS, pointsDataDIA, pointsDataMAP, pointsDataPulse)
 
     return Pair(allPointsData, timestamps)
+}
+
+@Composable
+fun ChartLegend() {
+    val legendItems = listOf(
+        "SYS" to MaterialTheme.colorScheme.tertiary,       // Kolor linii dla SYS
+        "DIA" to MaterialTheme.colorScheme.surfaceTint,   // Kolor linii dla DIA
+        "MAP" to MaterialTheme.colorScheme.surfaceDim     // Kolor linii dla MAP
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        legendItems.forEach { (label, color) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(color = color, shape = CircleShape) // Kółko z kolorem linii
+                )
+                Spacer(modifier = Modifier.width(8.dp)) // Odstęp między kolorem a tekstem
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
 }
 //endregion
 

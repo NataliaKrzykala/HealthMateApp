@@ -16,11 +16,11 @@
 
     <!-- Needed only if your app communicates with already-paired Bluetooth
          devices. -->
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" android:required="true" />
 
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:required="false"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:required="true" />
 
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
 
     <application
         android:name=".data.HMApp"

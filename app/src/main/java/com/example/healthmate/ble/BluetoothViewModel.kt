@@ -44,16 +44,28 @@ private val repository: HealthMateRepository
 //        _connectState.value = newState
 //    }
 
+//    // Flow przechowujący stany połączenia BLE
+//    private val _connectionStateFlow = MutableSharedFlow<BluetoothHandler.ConnectionState>()
+//    val connectionStateFlow = _connectionStateFlow.asSharedFlow()
+//
+//    // Wywoływane przy każdej zmianie stanu połączenia
+//    fun onConnectionStateChanged(newState: BluetoothHandler.ConnectionState) {
+//        Log.e("BluetoothViewModel", "Received new state: $newState")
+//        viewModelScope.launch {
+//            _connectionStateFlow.emit(newState)
+//        }
+//    }
+
     // Flow przechowujący stany połączenia BLE
-    private val _connectionStateFlow = MutableSharedFlow<BluetoothHandler.ConnectionState>()
-    val connectionStateFlow = _connectionStateFlow.asSharedFlow()
+    private val _connectionStateFlow = MutableStateFlow<BluetoothHandler.ConnectionState>(
+        BluetoothHandler.ConnectionState.DISCONNECTED // Wartość początkowa
+    )
+    val connectionStateFlow = _connectionStateFlow.asStateFlow()
 
     // Wywoływane przy każdej zmianie stanu połączenia
     fun onConnectionStateChanged(newState: BluetoothHandler.ConnectionState) {
         Log.e("BluetoothViewModel", "Received new state: $newState")
-        viewModelScope.launch {
-            _connectionStateFlow.emit(newState)
-        }
+        _connectionStateFlow.value = newState
     }
 
     companion object{
@@ -75,6 +87,10 @@ private val repository: HealthMateRepository
     }
 
     fun setCurrentDevice(device: BluetoothDev) {
+        Log.e(
+            TAG,
+            "Changing current device type: $device"
+        )
         _currentDevice.value = device
     }
     fun updateCharacteristicValue(value: ByteArray) {
@@ -173,7 +189,7 @@ private val repository: HealthMateRepository
                         }
 
                     }
-                    else {
+                    if (deviceType == bpmName) {
                         val paramSYS = ParametrPomiaru(
                             pomiarId = pomiarId,
                             nazwa = "SYS",

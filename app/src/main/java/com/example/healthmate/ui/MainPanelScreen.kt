@@ -76,17 +76,17 @@ fun MainPanelScreen(
                 .fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = "Cześć ${loggedUser.imie}, twój id to ${loggedUser.uzytkownikId} !",
-                    style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
+//            Box(
+//                modifier = Modifier
+//                    .padding(16.dp)
+//                    .fillMaxWidth()
+//            ) {
+//                Text(
+//                    text = "Cześć ${loggedUser.imie}, twój id to ${loggedUser.uzytkownikId} !",
+//                    style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+//                    modifier = Modifier.align(Alignment.Center)
+//                )
+//            }
             Box(
                 modifier = Modifier
                     .padding(16.dp)
