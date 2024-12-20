@@ -64,10 +64,14 @@ import com.example.healthmate.ble.BloodPressureMonitor
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
+import com.example.healthmate.ble.ShowPermissions
 import com.example.healthmate.ble.Thermometer
 import com.example.healthmate.ble.WeightScale
 import com.example.healthmate.data.HealthMateUiState
+import com.example.healthmate.data.permissionsList
 import com.example.healthmate.ui.theme.Typography
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.takeWhile
@@ -75,202 +79,102 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 
+@OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun MeasureScreen(
     modifier: Modifier = Modifier,
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel,
-    healthMateUiState: HealthMateUiState
+    healthMateUiState: HealthMateUiState,
+    onCancel: () -> Unit
 ) {
     bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
         Log.e("Bluetooth", "Device connected (measure screen): $deviceType")
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
-    var isConnecting by remember { mutableStateOf(true) }
+    val multiplePermissionsState = rememberMultiplePermissionsState(permissions = permissionsList)
     val connectionState by bluetoothViewModel.connectionStateFlow.collectAsState()
     var hasEnteredDetailsScreen by remember { mutableStateOf(false) }
-    //var currentDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.CheckingPermissions) }
 
     bluetoothHandler.onConnectionStateChanged = { newState ->
         bluetoothViewModel.onConnectionStateChanged(newState)
     }
 
+    LaunchedEffect(multiplePermissionsState.allPermissionsGranted) {
+        if (multiplePermissionsState.allPermissionsGranted) {
+            bluetoothHandler.startScanning()
+            currentScreen = Screen.Connecting
+        } else {
+            currentScreen = Screen.CheckingPermissions
+        }
+    }
+
     LaunchedEffect(connectionState) {
-        when (connectionState) {
-            BluetoothHandler.ConnectionState.CONNECTED -> isConnecting = false
-            BluetoothHandler.ConnectionState.DISCONNECTED -> isConnecting = true
-            else -> {}
+        if (connectionState == BluetoothHandler.ConnectionState.CONNECTED) {
+            currentScreen = Screen.Details
+        } else if (connectionState == BluetoothHandler.ConnectionState.DISCONNECTED && !hasEnteredDetailsScreen) {
+            currentScreen = Screen.Connecting
         }
+
+//        else if (connectionState == BluetoothHandler.ConnectionState.DISCONNECTED && !multiplePermissionsState.allPermissionsGranted) {
+//            currentScreen = Screen.CheckingPermissions
+//        } else {
+//            currentScreen = Screen.Connecting
+//        }
     }
 
-    LaunchedEffect(Unit) {
-        //isConnecting = true
-
-//        if (!isConnecting) {
-//            delay(2000) // Poczekaj 2 sekundy po nawiązaniu połączenia
-//        }
-
-        Log.e("isConnecting", "Attempting to connect...")
-
-        // Sprawdzenie uprawnień Bluetooth
-        if (!bluetoothHandler.hasBluetoothPermission()) {
-            isConnecting = false
-            Log.e("isConnecting", "Permission denied for Bluetooth")
-            return@LaunchedEffect
+    when (currentScreen) {
+        Screen.CheckingPermissions -> {
+            ShowPermissions(multiplePermissionsState)
         }
 
-        // Rozpoczęcie skanowania
-        //bluetoothHandler.scanLeDevice()
-        //delay(30000) // Czas skanowania (np. 30 sekund)
-        bluetoothHandler.startScanning()
-        //bluetoothHandler.stopScanning()
-
-        // Czekamy na pierwsze urządzenie (automatyczne połączenie z nim)
-//        bluetoothHandler.onDeviceFoundCallback = { device ->
-//            //bluetoothHandler.stopScanning()
-//            Log.e("Bluetooth", "onDeviceFoundCallback: ${device.name}")
-//
-//            val initialConnect = bluetoothHandler.connectToGattServer(device)
-//
-//            if (initialConnect) {
-//                currentDevice = device
-//                isConnecting = false
-//                Log.e("isConnecting", "Successfully connected to ${device.name}")
-//                //delay(3000)
-//            }
-//        }
-//        bluetoothHandler.onDeviceFoundCallback = { device ->
-//            Log.e("Bluetooth", "onDeviceFoundCallback: ${device.name}")
-//            //Handler(Looper.getMainLooper()).postDelayed({
-//                val initialConnect = bluetoothHandler.connectToGattServer(device)
-//
-//                if (initialConnect) {
-//                    currentDevice = device
-//                    isConnecting = false
-//                    Log.e("isConnecting", "Successfully connected to ${device.name}")
-//                }
-//            //}, 1000) // 1 sekunda opóźnienia przed połączeniem
-//        }
-        //delay(3000)
-
-        //bluetoothHandler.stopScanning()
-    }
-
-    when {
-        !hasEnteredDetailsScreen && isConnecting -> {
-            ConnectingAnimationScreen()
+        Screen.Connecting -> {
+            ConnectingAnimationScreen(
+                bluetoothHandler = bluetoothHandler,
+                onCancel = {
+                    bluetoothHandler.stopScanning() // Zatrzymaj skanowanie
+                    onCancel() // Nawiguj do MainPanelScreen
+                }
+            )
         }
 
-        else -> {
-            hasEnteredDetailsScreen = true // Oznacz, że użytkownik wszedł na ekran szczegółów
+        Screen.Details -> {
+            hasEnteredDetailsScreen = true
             BluetoothDetailsScreen(
                 bluetoothHandler = bluetoothHandler,
                 bluetoothViewModel = bluetoothViewModel,
                 healthMateUiState = healthMateUiState,
                 onBack = {
-                    hasEnteredDetailsScreen = false // Reset flagi przy powrocie
+                    bluetoothHandler.stopScanning()
+                    hasEnteredDetailsScreen = false
+                    currentScreen = Screen.Connecting
                 }
             )
         }
     }
 }
 
-//@SuppressLint("MissingPermission")
-//@Composable
-//fun MeasureScreen(
-//    modifier: Modifier = Modifier,
-//    bluetoothHandler: BluetoothHandler,
-//    bluetoothViewModel: BluetoothViewModel,
-//    healthMateUiState: HealthMateUiState
-//) {
-//    bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
-//        Log.e("Bluetooth", "Device connected (measure screen): ${deviceType.name}")
-//        bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
-//    }
-//
-//    var isConnecting by remember { mutableStateOf(true) }
-//    var currentDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
-//    val pairedDevices = bluetoothHandler.getBondedDevices()
-//
-//    bluetoothHandler.onConnectionStateChanged = { newState ->
-//        bluetoothViewModel.onConnectionStateChanged(newState)
-//    }
-//
-//    if (pairedDevices != null) {
-//        Log.e("Paired Devices List", "List is of size: ${pairedDevices.size}")
-//    }
-//
-//    LaunchedEffect(Unit) {
-//        isConnecting = true
-//        Log.e("isConnecting", "Attempting to connect...")
-//
-//        // Sprawdzenie uprawnień na początku
-//        if (!bluetoothHandler.hasBluetoothPermission()) {
-//            isConnecting = false
-//            Log.e("isConnecting", "Permission denied for Bluetooth")
-//            return@LaunchedEffect
-//        }
-//
-//        val deviceList = pairedDevices?.toList()
-//        if (deviceList.isNullOrEmpty()) {
-//            Log.e("isConnecting", "No paired devices found.")
-//            isConnecting = false
-//            return@LaunchedEffect
-//        }
-//
-//        var connected = false // Flaga do śledzenia sukcesu połączenia
-//
-//        // Powtarzaj, dopóki nie połączysz się z którymś urządzeniem
-//        while (!connected) {
-//            for (device in deviceList) {
-//                if (connected) break // Wyjście, jeśli już połączono
-//
-//                if ((device.name.contains("A&D") || device.name.contains("nRF")) && !connected) { //|| device.name.contains("A&D_UC")
-//                    Log.e("isConnecting", "Attempting to connect to device: ${device.name}")
-//
-//                    val initialConnect = bluetoothHandler.connectToGattServer(device)
-//                    if (!initialConnect) {
-//                        currentDevice = device
-//                        connected = true
-//                        //Log.e("isConnecting", "initialConnect changed for: ${device.name}")
-//                    }
-//
-////                    if(device.name.contains("A&D_UT") || device.name.contains("A&D_UA")) {
-////                        delay(3000) // + opóźnienie 2000 w if(!connected) = działa termometr i waga
-////                    }
-//                }
-//                delay(1000) // - tylko to = działa termometr i ciśnieniomierz
-//            }
-//            // Jeśli po przejściu przez wszystkie urządzenia nadal brak połączenia
-//            if (!connected) {
-//                Log.e("isConnecting", "Retrying connection with all devices...")
-//                //delay(2000) // + opóźnienie 3000 w if(device.name...) = działa termometr i waga
-//            }
-// //           delay(1000)
-//        }
-//        isConnecting = false
-//    }
-//
-//    when {
-//        isConnecting -> {
-//            ConnectingAnimationScreen()
-//        }
-//
-//        else -> {
-//            BluetoothDetailsScreen(
-//                bluetoothHandler = bluetoothHandler,
-//                bluetoothViewModel = bluetoothViewModel,
-//                healthMateUiState = healthMateUiState,
-//                onBack = { /* Obsługa powrotu */ }
-//            )
-//        }
-//    }
-//}
+enum class Screen {
+    CheckingPermissions,
+    Connecting,
+    Details
+}
 
 @Composable
-fun ConnectingAnimationScreen() {
+fun ConnectingAnimationScreen(
+    onCancel: () -> Unit,
+    bluetoothHandler: BluetoothHandler,
+) {
+
+    DisposableEffect(Unit) {
+        onDispose {
+            bluetoothHandler.stopScanning() // Wywołaj stopScanning przy opuszczaniu strony
+        }
+    }
+
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.anim))
     val progress by animateLottieCompositionAsState(
         composition = composition,
@@ -286,8 +190,19 @@ fun ConnectingAnimationScreen() {
         Text(
             text = stringResource(R.string.connecting),
             style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(top = 32.dp)
         )
+
+        Button(
+            onClick = onCancel,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 64.dp)
+                .padding(horizontal = 32.dp)
+
+        ) {
+            Text(text = stringResource(R.string.cancel))
+        }
     }
 }
 

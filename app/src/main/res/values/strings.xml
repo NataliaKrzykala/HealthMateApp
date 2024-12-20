@@ -55,6 +55,7 @@
 
     <string name="weight">Waga</string>
     <string name="pulse">Puls</string>
+    <string name="sysdiamap">SYS, DIA, MAP</string>
 
     <string name="body_movement_detected">Wykryto ruch</string>
     <string name="cuffs_fit">Opaska założona poprawnie</string>
@@ -83,6 +84,7 @@
     <string name="pulse_name">puls</string>
 
     <string name="no_devices_connected">Nie udało połączyć się z urządzeniem</string>
+    <string name="cancel">Anuluj</string>
 
 
 

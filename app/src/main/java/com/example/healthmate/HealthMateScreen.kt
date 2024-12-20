@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -178,7 +179,8 @@ fun HealthMateApp(
                     modifier = Modifier.fillMaxHeight(),
                     bluetoothHandler = bluetoothHandler,
                     bluetoothViewModel = bluetoothViewModel,
-                    healthMateUiState = uiState
+                    healthMateUiState = uiState,
+                    onCancel = { navController.popBackStack(HealthMateScreen.MainPanel.name, inclusive = false) }
                 )
             }
             composable(route = HealthMateScreen.Statistics.name) {

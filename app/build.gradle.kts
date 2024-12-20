@@ -94,6 +94,8 @@ dependencies {
 
     implementation ("co.yml:ycharts:2.1.0")
 
+    implementation("com.google.accompanist:accompanist-permissions:0.37.0")
+
     implementation ("io.github.ehsannarmani:compose-charts:$composeCharts_version")
 
     // Zaktualizuj Room do wersji z obsługą KSP

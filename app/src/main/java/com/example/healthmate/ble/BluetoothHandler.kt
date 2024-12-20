@@ -21,6 +21,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultRegistry
@@ -36,6 +37,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 
 
 class BluetoothHandler(
@@ -89,16 +91,25 @@ class BluetoothHandler(
         ) { permissions ->
             val isBluetoothScanGranted = permissions[Manifest.permission.BLUETOOTH_SCAN] == true
             val isBluetoothConnectGranted = permissions[Manifest.permission.BLUETOOTH_CONNECT] == true
+            val isLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
 
-            if (isBluetoothScanGranted && isBluetoothConnectGranted) {
+            if (isBluetoothScanGranted && isBluetoothConnectGranted && isLocationGranted) {
                 btPermission = true
                 // Po przyznaniu uprawnień, jeśli Bluetooth nie jest włączony, włącz go
                 if (bluetoothAdapter?.isEnabled == false) {
                     val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                     btActivityResultLauncher.launch(enableBtIntent)
-                } else {
-                    onScanResult() // Kontynuuj operację skanowania
                 }
+//                else {
+//                    onScanResult() // Kontynuuj operację skanowania
+//                }
+
+                if (!isLocationEnabled()) {
+                    requestEnableLocation()
+                } else {
+                    //continueBluetoothOperations()
+                }
+
             } else {
                 btPermission = false
                 // Obsłuż przypadek, gdy uprawnienia są odrzucone
@@ -112,6 +123,31 @@ class BluetoothHandler(
         ) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 onScanResult()
+            }
+        }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager =
+            activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    private fun requestEnableLocation() {
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        locationActivityResultLauncher.launch(intent)
+    }
+
+    private val locationActivityResultLauncher =
+        activityResultRegistry.register(
+            "location_activity_result",
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (isLocationEnabled()) {
+                //continueBluetoothOperations()
+            } else {
+                // Obsłuż przypadek, gdy lokalizacja nie została włączona
+                Log.e(TAG, "Lokalizacja nie jest włączona.")
             }
         }
     //endregion

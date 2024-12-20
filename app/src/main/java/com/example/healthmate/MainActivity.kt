@@ -26,6 +26,7 @@ import androidx.activity.result.ActivityResultRegistry
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.healthmate.ble.BleObserver
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.ble.HealthMateViewModelFactory
@@ -40,7 +41,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        setContent {
+        //setContent {
 
             val bluetoothHandler = BluetoothHandler(
                 this,
@@ -48,23 +49,29 @@ class MainActivity : ComponentActivity() {
                 onScanResult = ::btScan
             )
 
+            val bleObserver = BleObserver(this, bluetoothHandler)
+            this.lifecycle.addObserver(bleObserver)
+
             val healthMateViewModelFactory = HealthMateViewModelFactory(bluetoothHandler, repository = (application as HMApp).repository)
             val bluetoothViewModel: BluetoothViewModel = ViewModelProvider(this, healthMateViewModelFactory)
                 .get(BluetoothViewModel::class.java)
 
             bluetoothHandler.checkAndRequestBluetoothPermission()
-            // Rejestrujemy odbiornik Bluetooth, aby nasłuchiwać zdarzeń
-            //bluetoothHandler.registerReceiver()
 
+        setContent {
             HealthMateTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize()
-                ){
-                    HealthMateApp(bluetoothHandler = bluetoothHandler, bluetoothViewModel = bluetoothViewModel)
-                    //MeasureScreen(bluetoothHandler = bluetoothHandler)
+                ) {
+                    // Przekazanie handlera i ViewModel do głównej aplikacji
+                    HealthMateApp(
+                        bluetoothHandler = bluetoothHandler,
+                        bluetoothViewModel = bluetoothViewModel
+                    )
                 }
             }
         }
+        //}
     }
 
 

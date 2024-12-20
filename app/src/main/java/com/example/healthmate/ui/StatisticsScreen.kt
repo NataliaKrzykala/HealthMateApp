@@ -232,7 +232,7 @@ fun StatisticsScreen(
 
         Card(
             modifier = Modifier
-                .padding(8.dp)
+                .padding(16.dp)
                 .fillMaxWidth(),
                 //.heightIn(min = 300.dp)
             elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
@@ -242,7 +242,7 @@ fun StatisticsScreen(
                     style = Typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(vertical = 4.dp),
+                        .padding(top = 16.dp),
                 )
 
                 if (selectedDevice.rodzaj == "termometr") {
@@ -409,12 +409,24 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, mo
                     .heightIn(min = 300.dp, max = 1000.dp)
                     .padding(bottom = 24.dp)
             ) {
-                LineChart(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(500.dp),
-                    lineChartData = lineChartData
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.temperature),
+                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+                        style = Typography.displayMedium
+                    )
+
+                    LineChart(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp),
+                        lineChartData = lineChartData
+                    )
+
+                    ChartLegendOthers(stringResource(R.string.temperature))
+                }
             }
         }
     }
@@ -557,12 +569,24 @@ fun WeightScaleChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, mo
                     .heightIn(min = 300.dp, max = 1000.dp)
                     .padding(bottom = 24.dp)
             ) {
-                LineChart(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(500.dp),
-                    lineChartData = lineChartData
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.weight),
+                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+                        style = Typography.displayMedium
+                    )
+
+                    LineChart(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp),
+                        lineChartData = lineChartData
+                    )
+
+                    ChartLegendOthers(stringResource(R.string.weight))
+                }
             }
         }
     }
@@ -759,6 +783,112 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
                 bottomPadding = 30.dp
             )
 
+            // Puls
+            val stepsPulse = 13
+
+            val xAxisDataPulse = AxisData.Builder()
+                .axisStepSize(150.dp)
+                .axisLabelAngle(8f)
+                .bottomPadding(120.dp)
+                .backgroundColor(Color.Transparent)
+                .steps(pointsDataPulse.size - 1)
+                .labelData { i ->
+                    val timestamp = timestamps.getOrNull(i) ?: ""
+                    timestamp
+                }
+                .labelAndAxisLinePadding(5.dp)
+                .axisLineColor(MaterialTheme.colorScheme.tertiary)
+                .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .build()
+
+            val yAxisDataPulse = AxisData.Builder()
+                .steps(stepsPulse)
+                .backgroundColor(Color.Transparent)
+                .labelAndAxisLinePadding(20.dp)
+                .labelData { i ->
+                    val stepSize = (180f - 40f) / stepsPulse // Rozmiar kroku
+                    val value = 0f + i * stepSize
+                    String.format("%.0f /min", value)
+                }
+                .axisLineColor(MaterialTheme.colorScheme.tertiary)
+                .axisLabelColor(MaterialTheme.colorScheme.tertiary)
+                .shouldDrawAxisLineTillEnd(true)
+                .bottomPadding(20.dp)
+                .build()
+
+            val lineChartDataPulse = LineChartData(
+                linePlotData = LinePlotData(
+                    lines = listOf(
+                        Line(
+                            dataPoints = pointsDataPulse,
+                            LineStyle(
+                                color = MaterialTheme.colorScheme.tertiary,
+                                lineType = LineType.SmoothCurve(isDotted = false)
+                            ),
+                            IntersectionPoint(
+                                color = MaterialTheme.colorScheme.tertiary,
+                            ),
+                            SelectionHighlightPoint(color = MaterialTheme.colorScheme.primary),
+                            ShadowUnderLine(
+                                alpha = 0.5f,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.inversePrimary,
+                                        Color.Transparent
+                                    )
+                                )
+                            ),
+                            SelectionHighlightPopUp(
+                                popUpLabel = { _, y ->
+                                    "${String.format("%.0f", y)} /min"
+                                }
+                            )
+                        )
+                    ),
+                ),
+                xAxisData = xAxisDataPulse,
+                yAxisData = yAxisDataPulse,
+                gridLines = GridLines(color = MaterialTheme.colorScheme.outline),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                bottomPadding = 30.dp
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 300.dp, max = 1000.dp)
+                    .padding(bottom = 24.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.sysdiamap),
+                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+                        style = Typography.displayMedium
+                    )
+                    // Wykres linii
+                    LineChart(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp),
+                        lineChartData = lineChartData
+                    )
+                    // Legenda pod wykresem
+                    ChartLegend()
+
+                    Divider(thickness = dimensionResource(R.dimen.thickness_divider))
+                    Text(
+                        text = stringResource(R.string.pulse),
+                        modifier = Modifier.padding(top = 16.dp),
+                        style = Typography.displayMedium
+                    )
+                }
+            }
+
+
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -773,10 +903,10 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(500.dp),
-                        lineChartData = lineChartData
+                        lineChartData = lineChartDataPulse
                     )
-                    // Legenda pod wykresem
-                    ChartLegend()
+
+                    ChartLegendOthers(stringResource(R.string.pulse))
                 }
             }
         }
@@ -850,7 +980,7 @@ fun ChartLegend() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp),
+            .padding(top = 16.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -875,6 +1005,34 @@ fun ChartLegend() {
     }
 }
 //endregion
+
+@Composable
+fun ChartLegendOthers(parameter: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape) // Kółko z kolorem linii
+                )
+                Spacer(modifier = Modifier.width(8.dp)) // Odstęp między kolorem a tekstem
+                Text(
+                    text = parameter,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+    }
+}
 
 fun convertIsoToCustomFormat(isoDate: String): String? {
     val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME // ISO 8601
