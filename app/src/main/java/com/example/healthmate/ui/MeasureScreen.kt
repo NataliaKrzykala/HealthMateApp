@@ -1,10 +1,12 @@
 package com.example.healthmate.ui
 
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -49,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,13 +63,16 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.healthmate.R
+import com.example.healthmate.ble.BleObserver
 import com.example.healthmate.ble.BloodPressureMonitor
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothUUIDs
 import com.example.healthmate.ble.BluetoothViewModel
+import com.example.healthmate.ble.ShowEnableLocation
 import com.example.healthmate.ble.ShowPermissions
 import com.example.healthmate.ble.Thermometer
 import com.example.healthmate.ble.WeightScale
+import com.example.healthmate.ble.isLocationEnabled
 import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.data.permissionsList
 import com.example.healthmate.ui.theme.Typography
@@ -87,6 +93,7 @@ fun MeasureScreen(
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel,
     healthMateUiState: HealthMateUiState,
+    bleObserver: BleObserver,
     onCancel: () -> Unit
 ) {
     bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
@@ -103,10 +110,35 @@ fun MeasureScreen(
         bluetoothViewModel.onConnectionStateChanged(newState)
     }
 
-    LaunchedEffect(multiplePermissionsState.allPermissionsGranted) {
+    val context = LocalContext.current
+    var isLocationEnabled by remember { mutableStateOf(false) }
+    var isBluetoothEnabled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        Log.e("Bluetooth&Location", "Checking if Bluetooth & location are enabled")
+        isBluetoothEnabled = bluetoothHandler.isBluetoothEnabled()
+        isLocationEnabled = isLocationEnabled(context)
+    }
+
+    LaunchedEffect(multiplePermissionsState.allPermissionsGranted, isLocationEnabled, isBluetoothEnabled) {
         if (multiplePermissionsState.allPermissionsGranted) {
-            bluetoothHandler.startScanning()
-            currentScreen = Screen.Connecting
+            when {
+                !isBluetoothEnabled -> {
+                    // Prośba o włączenie Bluetooth
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                    context.startActivity(enableBtIntent)
+                    isBluetoothEnabled = bluetoothHandler.isBluetoothEnabled() // Aktualizacja stanu
+                }
+                !isLocationEnabled -> {
+                    // Przekierowanie do włączenia lokalizacji
+                    currentScreen = Screen.EnableLocation
+                }
+                else -> {
+                    // Można rozpocząć skanowanie
+                    bluetoothHandler.startScanning()
+                    currentScreen = Screen.Connecting
+                }
+            }
         } else {
             currentScreen = Screen.CheckingPermissions
         }
@@ -118,12 +150,6 @@ fun MeasureScreen(
         } else if (connectionState == BluetoothHandler.ConnectionState.DISCONNECTED && !hasEnteredDetailsScreen) {
             currentScreen = Screen.Connecting
         }
-
-//        else if (connectionState == BluetoothHandler.ConnectionState.DISCONNECTED && !multiplePermissionsState.allPermissionsGranted) {
-//            currentScreen = Screen.CheckingPermissions
-//        } else {
-//            currentScreen = Screen.Connecting
-//        }
     }
 
     when (currentScreen) {
@@ -135,10 +161,14 @@ fun MeasureScreen(
             ConnectingAnimationScreen(
                 bluetoothHandler = bluetoothHandler,
                 onCancel = {
-                    bluetoothHandler.stopScanning() // Zatrzymaj skanowanie
-                    onCancel() // Nawiguj do MainPanelScreen
+                    bluetoothHandler.stopScanning()
+                    onCancel()
                 }
             )
+        }
+
+        Screen.EnableLocation -> {
+            ShowEnableLocation()
         }
 
         Screen.Details -> {
@@ -160,6 +190,7 @@ fun MeasureScreen(
 enum class Screen {
     CheckingPermissions,
     Connecting,
+    EnableLocation,
     Details
 }
 
@@ -230,6 +261,7 @@ fun BluetoothDetailsScreen(
     }
 
     var devName = bluetoothHandler.getConnectedDeviceName()
+    devName = devName?.split("_")?.take(2)?.joinToString("_") ?: "unknown"
     var isEffectTriggered = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {

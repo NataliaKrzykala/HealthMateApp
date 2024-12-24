@@ -17,7 +17,6 @@ import androidx.lifecycle.LifecycleOwner
 
 class BleObserver(
     private val activity: ComponentActivity,
-    //private val bleManager: BluetoothManager, // Dodaj bleManager jako zależność
     private val bluetoothHandler: BluetoothHandler
 ) : DefaultLifecycleObserver {
 
@@ -57,7 +56,7 @@ class BleObserver(
                         return
                     }
                     if (btAdapter?.state == BluetoothAdapter.STATE_ON) {
-                        bluetoothHandler.startScanning()
+                        //bluetoothHandler.startScanning()
                         return
                     }
                 }
@@ -71,7 +70,7 @@ class BleObserver(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            bluetoothHandler.startScanning()
+            //bluetoothHandler.startScanning()
         }
     }
 }

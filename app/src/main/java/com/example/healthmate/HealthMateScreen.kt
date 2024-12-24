@@ -30,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.healthmate.R
+import com.example.healthmate.ble.BleObserver
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.data.DataSource
@@ -101,7 +102,8 @@ fun HealthMateApp(
     bluetoothHandler: BluetoothHandler,
     viewModel: HealthMateViewModel = viewModel(),
     bluetoothViewModel: BluetoothViewModel,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    bleObserver: BleObserver
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = HealthMateScreen.valueOf(
@@ -180,7 +182,8 @@ fun HealthMateApp(
                     bluetoothHandler = bluetoothHandler,
                     bluetoothViewModel = bluetoothViewModel,
                     healthMateUiState = uiState,
-                    onCancel = { navController.popBackStack(HealthMateScreen.MainPanel.name, inclusive = false) }
+                    onCancel = { navController.popBackStack(HealthMateScreen.MainPanel.name, inclusive = false) },
+                    bleObserver = bleObserver
                 )
             }
             composable(route = HealthMateScreen.Statistics.name) {

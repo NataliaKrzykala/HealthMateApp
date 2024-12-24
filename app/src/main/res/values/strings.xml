@@ -50,6 +50,8 @@
 
     <string name="no_data">Brak danych</string>
     <string name="no_dev_connected">Urządzenie nie jest połączone</string>
+    <string name="no_data_for_lastMeas">Brak danych dla ostatniego pomiaru</string>
+    <string name="no_date">Nieznana data</string>
     <string name="dev_name">%1$s</string>
     <string name="dev_type">%1$s</string>
 
@@ -85,6 +87,14 @@
 
     <string name="no_devices_connected">Nie udało połączyć się z urządzeniem</string>
     <string name="cancel">Anuluj</string>
+
+    <string name="location_turn_on">Włącz lokalizację</string>
+    <string name="location">Lokalizacja</string>
+    <string name="location_needed">Lokalizacja jest niezbędna by przeprowadzić skanowanie urządzeń BLE.</string>
+    <string name="permissions">Pozwolenia</string>
+    <string name="permissions_ok_1">Zanim rozpoczniesz skanowanie urządzeń BLE, musisz wyrazić zgodę na wykorzystanie Bluetooth i lokalizacji. </string>
+    <string name="permissions_ok_2">musisz wyrazić zgodę na wykorzystanie Bluetooth i lokalizacji</string>
+    <string name="permit">Zgadzam się</string>
 
 
 

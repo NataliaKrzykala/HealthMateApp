@@ -214,7 +214,7 @@ fun StatisticsScreen(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 if (lastPomiar != null) {
-                    val formattedDate = convertIsoToCustomFormat(lastPomiar.pomiar.data) ?: "Nieznana data"
+                    val formattedDate = convertIsoToCustomFormat(lastPomiar.pomiar.data) ?: stringResource(R.string.no_date)
                     Text(
                         text = stringResource(R.string.date, formattedDate),
                         modifier = Modifier.padding(vertical = 8.dp),
@@ -223,7 +223,7 @@ fun StatisticsScreen(
                     Divider(thickness = dimensionResource(R.dimen.thickness_divider))
                     DisplayMeasParams(lastPomiar)
                 } else {
-                    Text("Brak danych dla ostatniego pomiaru")
+                    Text(stringResource(R.string.no_data_for_lastMeas))
                 }
 
             }

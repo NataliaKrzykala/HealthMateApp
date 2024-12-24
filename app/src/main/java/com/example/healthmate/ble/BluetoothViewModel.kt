@@ -36,26 +36,6 @@ bluetoothHandler: BluetoothHandler,
 private val repository: HealthMateRepository
 ) : ViewModel() {
 
-    private val _connectState = MutableStateFlow<BluetoothHandler.ConnectionState>(BluetoothHandler.ConnectionState.DISCONNECTED)
-    val connectState: StateFlow<BluetoothHandler.ConnectionState> = _connectState
-
-//    fun onConnectionStateChanged(newState: BluetoothHandler.ConnectionState) {
-//        // Zmieniamy stan połączenia w ViewModelu
-//        _connectState.value = newState
-//    }
-
-//    // Flow przechowujący stany połączenia BLE
-//    private val _connectionStateFlow = MutableSharedFlow<BluetoothHandler.ConnectionState>()
-//    val connectionStateFlow = _connectionStateFlow.asSharedFlow()
-//
-//    // Wywoływane przy każdej zmianie stanu połączenia
-//    fun onConnectionStateChanged(newState: BluetoothHandler.ConnectionState) {
-//        Log.e("BluetoothViewModel", "Received new state: $newState")
-//        viewModelScope.launch {
-//            _connectionStateFlow.emit(newState)
-//        }
-//    }
-
     // Flow przechowujący stany połączenia BLE
     private val _connectionStateFlow = MutableStateFlow<BluetoothHandler.ConnectionState>(
         BluetoothHandler.ConnectionState.DISCONNECTED // Wartość początkowa
@@ -105,7 +85,7 @@ private val repository: HealthMateRepository
 
         viewModelScope.launch {
             // Przetwarzamy wartości charakterystyk na parametry obiektu Urzadzenie
-            val nazwa = devName ?: unknown
+            val nazwa = devName?: "unknown"
             val producent = values[BluetoothUUIDs.UUID_MANUFACTURER] ?: noInfo
             val model = values[BluetoothUUIDs.UUID_MODEL_NUMBER] ?: noInfo
             val rodzaj = deviceType.name

@@ -66,7 +66,8 @@ class MainActivity : ComponentActivity() {
                     // Przekazanie handlera i ViewModel do głównej aplikacji
                     HealthMateApp(
                         bluetoothHandler = bluetoothHandler,
-                        bluetoothViewModel = bluetoothViewModel
+                        bluetoothViewModel = bluetoothViewModel,
+                        bleObserver = bleObserver
                     )
                 }
             }
