@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Szare tło dialogu -->
+    <solid android:color="#B0B0B0"/>
+    <!-- Zaokrąglone krawędzie -->
+    <corners android:radius="32dp"/>
+</shape>

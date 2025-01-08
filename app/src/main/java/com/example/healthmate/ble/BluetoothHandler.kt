@@ -16,18 +16,15 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
-import com.example.healthmate.ui.convertTimestampToByteArray
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.example.healthmate.data.convertTimestampToByteArray
 import kotlin.coroutines.Continuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.time.LocalDateTime
@@ -35,9 +32,12 @@ import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
+import android.app.AlertDialog
+import android.view.LayoutInflater
+import android.widget.Toast
+import androidx.core.content.ContextCompat
+import com.example.healthmate.R
 
 
 class BluetoothHandler(
@@ -90,6 +90,7 @@ class BluetoothHandler(
             val isBluetoothScanGranted = permissions[Manifest.permission.BLUETOOTH_SCAN] == true
             val isBluetoothConnectGranted = permissions[Manifest.permission.BLUETOOTH_CONNECT] == true
             val isLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+            val isLocationCoarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
 
             if (isBluetoothScanGranted && isBluetoothConnectGranted && isLocationGranted) {
                 btPermission = true
@@ -101,12 +102,14 @@ class BluetoothHandler(
 //                else {
 //                    onScanResult() // Kontynuuj operację skanowania
 //                }
-
-                if (!isLocationEnabled()) {
-                    requestEnableLocation()
-                } else {
-                    //continueBluetoothOperations()
-                }
+//                var isLocationDialogShown = false
+//                if (!isLocationEnabled()) {
+//                    Log.e("PERMISSIONS", "ELO 4")
+//                    showLocationRequestDialog{isLocationDialogShown = false}
+//                    //requestEnableLocation()
+//                } else {
+//                    //continueBluetoothOperations()
+//                }
 
             } else {
                 btPermission = false
@@ -121,8 +124,60 @@ class BluetoothHandler(
         ) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 onScanResult()
+            } else {
+                handleBluetoothRefused()
             }
         }
+
+//    fun showLocationEnablePrompt() {
+//        // Wyświetl dedykowany ekran lub dialog w Jetpack Compose
+//        activity.runOnUiThread {
+//            Toast.makeText(activity, "Włącz lokalizację, aby kontynuować", Toast.LENGTH_SHORT).show()
+//        }
+//    }
+
+    fun handleBluetoothRefused() {
+        Toast.makeText(activity, activity.getString(R.string.turn_on_bt), Toast.LENGTH_LONG).show()
+    }
+
+
+    fun showLocationRequestDialog(onDialogClosed: () -> Unit) {
+        val builder = AlertDialog.Builder(activity)
+
+        // Ustawienie niestandardowego layoutu dla dialogu
+        //val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_custom_layout, null)
+
+        // Ustawienie tła i zaokrąglenia
+        val dialog = builder
+            .setTitle(activity.getString(R.string.location_request_title))
+            .setMessage(activity.getString(R.string.location_request_message))
+            //.setView(dialogView) // Wstawiamy niestandardowy layout
+            .setPositiveButton(activity.getString(R.string.positive_button_text)) { _, _ ->
+                requestEnableLocation()
+                onDialogClosed() // Zresetuj flagę po akceptacji
+            }
+            .setNegativeButton(activity.getString(R.string.negative_button_text)) { dialog, _ ->
+                dialog.dismiss()
+                onDialogClosed() // Zresetuj flagę po odmowie
+            }
+            .setCancelable(false)
+            .create()
+
+        // Zmieniamy kolory przycisków po tym, jak dialog się wyświetli
+        dialog.setOnShowListener {
+            // Zmiana kolorów przycisków po pokazaniu dialogu
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(ContextCompat.getColor(activity, R.color.colorPrimary)) // Kolor przycisku "Tak"
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(ContextCompat.getColor(activity, R.color.colorPrimary)) // Kolor przycisku "Nie"
+        }
+
+        // Zmiana tła dialogu na zaokrąglony i kolorowy
+        dialog.window?.setBackgroundDrawable(
+            ContextCompat.getDrawable(activity, R.drawable.dialog_custom_layout)
+        )
+
+        dialog.show()
+    }
+
 
     private fun isLocationEnabled(): Boolean {
         val locationManager =
@@ -157,23 +212,33 @@ class BluetoothHandler(
     }
 
     fun hasBluetoothPermission(): Boolean {
+        Log.e("PERMISSIONS", "HAS?")
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.e("PERMISSIONS", "HAS1")
             activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
-                    activity.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+                    activity.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED //&&
+                    //activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                    //activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         } else {
+            Log.e("PERMISSIONS", "HAS2")
             activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
         }
     }
 
     fun checkAndRequestBluetoothPermission() {
+        Log.e("PERMISSIONS", "CHECK?")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.e("PERMISSIONS", "CHECK1")
             bluetoothPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
                 )
             )
         } else {
+            Log.e("PERMISSIONS", "CHECK2")
             bluetoothPermissionLauncher.launch(
                 arrayOf(Manifest.permission.BLUETOOTH_ADMIN)
             )
@@ -532,7 +597,7 @@ class BluetoothHandler(
     //endregion
 
     //region Scanning devices
-    private val processedDevices = mutableSetOf<String>()
+//    private val processedDevices = mutableSetOf<String>()
     private var isScanning = false
 
     private val bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
@@ -546,13 +611,13 @@ class BluetoothHandler(
             }
             // Ignorujemy urządzenia, które już przetworzyliśmy
             val deviceAddress = result.device.address
-            if (processedDevices.contains(deviceAddress)) {
-                Log.e("BluetoothHandler", "Device already processed: $deviceAddress")
-                return
-            }
+//            if (processedDevices.contains(deviceAddress)) {
+//                Log.e("BluetoothHandler", "Device already processed: $deviceAddress")
+//                return
+//            }
 
             // Dodajemy urządzenie do listy przetworzonych
-            processedDevices.add(deviceAddress)
+            //processedDevices.add(deviceAddress)
 
             // Sprawdzamy, czy urządzenie spełnia nasze kryteria
             val deviceName = result.device.name
@@ -560,7 +625,6 @@ class BluetoothHandler(
                 Log.e("BluetoothHandler", "Matching device found: $deviceName ($deviceAddress)")
 
                 // Zatrzymujemy skanowanie
-                isScanning = false
                 stopScanning()
 
                 // Próba połączenia z urządzeniem
@@ -591,6 +655,7 @@ class BluetoothHandler(
             }
 
             stopScanning()
+
         }
     }
 

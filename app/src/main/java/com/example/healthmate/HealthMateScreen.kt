@@ -33,7 +33,6 @@ import com.example.healthmate.R
 import com.example.healthmate.ble.BleObserver
 import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothViewModel
-import com.example.healthmate.data.DataSource
 import com.example.healthmate.ui.AccountScreen
 import com.example.healthmate.ui.HealthMateViewModel
 import com.example.healthmate.ui.LogInScreen
@@ -178,12 +177,10 @@ fun HealthMateApp(
             }
             composable(route = HealthMateScreen.Measure.name) {
                 MeasureScreen(
-                    modifier = Modifier.fillMaxHeight(),
                     bluetoothHandler = bluetoothHandler,
                     bluetoothViewModel = bluetoothViewModel,
                     healthMateUiState = uiState,
                     onCancel = { navController.popBackStack(HealthMateScreen.MainPanel.name, inclusive = false) },
-                    bleObserver = bleObserver
                 )
             }
             composable(route = HealthMateScreen.Statistics.name) {

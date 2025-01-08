@@ -21,29 +21,18 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
         return if (existingDevice == null) {
             // Jeśli urządzenie nie istnieje, zapisz je i zwróć ID nowo dodanego urządzenia
             val deviceId = urzadzenieDAO.insertSensor(urzadzenie)
-            Log.d("HealthMateRepository", "Davice saved, ID: $deviceId")
+            //Log.d("HealthMateRepository", "Davice saved, ID: $deviceId")
             deviceId
         } else {
             // Jeśli urządzenie już istnieje, zwróć jego ID
-            Log.d("HealthMateRepository", "Device ${urzadzenie.nazwa} already exists, ID: ${existingDevice.urzadzenieId}")
+            //Log.d("HealthMateRepository", "Device ${urzadzenie.nazwa} already exists, ID: ${existingDevice.urzadzenieId}")
             existingDevice.urzadzenieId
         }
-    }
-
-    fun getAllSensors(): Flow<List<Urzadzenie>> {
-        return urzadzenieDAO.getAllSensors()
     }
 
     fun getAllSensorsForUser(userId: Long): Flow<List<Urzadzenie>> {
         return urzadzenieDAO.getAllSensorsForUser(userId)
     }
-
-
-//    @Suppress("RedundantSuspendModifier")
-//    @WorkerThread
-//    suspend fun insert(urzadzenie: Urzadzenie) {
-//        urzadzenieDAO.insertSensor(urzadzenie)
-//    }
     //endregion
 
     //region Measurement-related operations
@@ -69,18 +58,6 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
     suspend fun checkIfMeasurementExists(deviceId: Long, timestamp: String): Boolean {
         return pomiarDAO.doesMeasurementExist(deviceId, timestamp)
     }
-
-//    suspend fun getMeasurementsByUser(userId: Int): List<Measurement> {
-//        return withContext(Dispatchers.IO) {
-//            measurementDao.getMeasurementsByUserId(userId)
-//        }
-//    }
-
-//    suspend fun getMeasurementsByTimeRange(startTime: String, endTime: String): List<Pomiar> {
-//        return withContext(Dispatchers.IO) {
-//            pomiarDAO.getMeasurementsByTimeRange(startTime, endTime)
-//        }
-//    }
     //endregion
 
     //region MeasurementParameter-related operations
@@ -89,18 +66,6 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
             parametrPomiaruDAO.insertMeasurementParameter(parametrPomiaru)
         }
     }
-
-    suspend fun getParametersByMeasurementId(pomiarId: Int): List<ParametrPomiaru> {
-        return withContext(Dispatchers.IO) {
-            parametrPomiaruDAO.getParametersByMeasurementId(pomiarId)
-        }
-    }
-
-//    suspend fun deleteParametersByMeasurementId(measurementId: Int) {
-//        withContext(Dispatchers.IO) {
-//            measurementParameterDao.deleteParametersByMeasurementId(measurementId)
-//        }
-//    }
     //endregion
 
     //region User-related operations

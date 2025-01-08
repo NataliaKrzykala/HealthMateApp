@@ -1,8 +1,8 @@
-package com.example.healthmate.ui
+package com.example.healthmate.data
 
-import java.time.LocalDate
+import java.time.DateTimeException
 import java.time.LocalDateTime
-import java.util.Calendar
+
 data class TemperatureFlag(
     val isTemperatureInCelsius: Boolean, // True jeśli temperatura w Celsjuszach, False jeśli w Fahrenheitach
     val isTimestampPresent: Boolean,   // True jeśli timestamp obecne
@@ -23,6 +23,9 @@ fun parseTemperatureFlag(flagByte: Byte?): TemperatureFlag? {
 }
 fun parseTemperatureFromByte(byteArray: ByteArray?): Float? {
     if(byteArray == null) return null
+    if (byteArray.size != 4) throw IllegalArgumentException("Invalid byte array: too short/long")
+
+
     val mantissa = ((byteArray[2].toInt() and 0xFF) shl 16) or
             ((byteArray[1].toInt() and 0xFF) shl 8) or
             (byteArray[0].toInt() and 0xFF)
@@ -36,19 +39,29 @@ fun parseTemperatureFromByte(byteArray: ByteArray?): Float? {
 fun parseTimestampFromByte(byteArray: ByteArray?): LocalDateTime? {
     if(byteArray == null) return null
 
-    val year = ((byteArray[1].toInt() and 0xFF) shl 8) or (byteArray[0].toInt() and 0xFF)
-    val month = (byteArray[2].toInt() and 0xFF) - 1
+    if (byteArray.size != 7) {
+        throw IllegalArgumentException("Invalid timestamp format: byte array too short/long")
+    }
+
+    val year = ((byteArray[0].toInt() and 0xFF) or ((byteArray[1].toInt() and 0xFF) shl 8))
+    val month = (byteArray[2].toInt() and 0xFF)
     val day = byteArray[3].toInt() and 0xFF
     val hour = byteArray[4].toInt() and 0xFF
     val minute = byteArray[5].toInt() and 0xFF
     val second = byteArray[6].toInt() and 0xFF
 
-    val parsedDate: LocalDateTime = LocalDateTime.of(year, month, day, hour, minute, second)
+    if (year > LocalDateTime.now().year) throw DateTimeException("Invalid year: $year is in the future")
+    if (month !in 1..12) throw DateTimeException("Invalid month value: $month")
+    if (day !in 1..31) throw DateTimeException("Invalid day value: $day")
+    if (hour !in 0..23) throw DateTimeException("Invalid hour value: $hour")
+    if (minute !in 0..59) throw DateTimeException("Invalid minute value: $minute")
+    if (second !in 0..59) throw DateTimeException("Invalid second value: $second")
 
-    //val calendar = Calendar.getInstance()
-    //calendar.set(year, month, day, hour, minute, second)
-
-    return parsedDate
+    return try {
+        LocalDateTime.of(year, month, day, hour, minute, second)
+    } catch (e: DateTimeException) {
+        throw DateTimeException("Invalid date: ${e.message}")
+    }
 }
 
 fun convertTimestampToByteArray(dateTime: LocalDateTime): ByteArray {
@@ -119,14 +132,15 @@ fun parseWeightScaleFlag(flagByte: Byte?): WeightScaleFlag? {
 
 fun parseWeightMeasurement(byteArray: ByteArray?, isInKilograms: Boolean): Float? {
     if(byteArray == null) return null
+    if (byteArray.size != 2) throw IllegalArgumentException("Invalid byte array: too short/long")
 
     val weightValue: Int = (byteArray[1].toInt() and 0xFF shl 8) or (byteArray[0].toInt() and 0xFF)
 
-    if(isInKilograms) {
+    return if(isInKilograms) {
         // Przeliczenie wartości na kg z rozdzielczością 0.005 kg - /**TODO - ZMIENIĆ?/
-        return (weightValue * 0.005).toFloat()
+        (weightValue * 0.005).toFloat()
     } else {
-        return (weightValue * 0.01).toFloat()
+        (weightValue * 0.01).toFloat()
     }
 }
 
@@ -159,55 +173,71 @@ fun parseBPMFlag(flagByte: Byte?): BPMFlag? {
 
 fun parseSYSMeasurement(byteArray: ByteArray?, isInmmHg: Boolean): Float? {
     if(byteArray == null) return null
+    if (byteArray.size != 2) throw IllegalArgumentException("Invalid byte array: too short/long")
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
-    var exponent = 0
+    val exponent = byteArray[1].toInt() and 0x0F
 
-    if(isInmmHg) {
-        exponent = byteArray[1].toInt() and 0x0F
+    val result = if (isInmmHg) {
+        // Wartości w mmHg - mantysa * 10^exponent
+        mantissa * Math.pow(10.0, exponent.toDouble())
     } else {
-        exponent = 3
+        // Wartości w kPa - zastosowanie wzoru: R = C × M × 10^d × 2^b
+        val M = 1      // Mnożnik
+        val d = 3      // Eksponent dziesiętny
+        val b = 0      // Eksponent binarny
+        mantissa * M * Math.pow(10.0, d.toDouble()) * Math.pow(2.0, b.toDouble()) / 1000 // podzielić na 1000 bo to wynik w Pa?
     }
 
-    val result = mantissa * Math.pow(10.0, exponent.toDouble())
     return result.toFloat()
 }
 
 fun parseDIAMeasurement(byteArray: ByteArray?, isInmmHg: Boolean): Float? {
     if(byteArray == null) return null
+    if (byteArray.size != 2) throw IllegalArgumentException("Invalid byte array: too short/long")
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
-    var exponent = 0
+    val exponent = byteArray[1].toInt() and 0x0F
 
-    if(isInmmHg) {
-        exponent = byteArray[1].toInt() and 0x0F
+    val result = if (isInmmHg) {
+        // Wartości w mmHg - mantysa * 10^exponent
+        mantissa * Math.pow(10.0, exponent.toDouble())
     } else {
-        exponent = 3
+        // Wartości w kPa - zastosowanie wzoru: R = C × M × 10^d × 2^b
+        val M = 1      // Mnożnik
+        val d = 3      // Eksponent dziesiętny
+        val b = 0      // Eksponent binarny
+        mantissa * M * Math.pow(10.0, d.toDouble()) * Math.pow(2.0, b.toDouble()) / 1000 // podzielić na 1000 bo to wynik w Pa?
     }
 
-    val result = mantissa * Math.pow(10.0, exponent.toDouble())
     return result.toFloat()
 
 }
 
 fun parseMAPMeasurement(byteArray: ByteArray?, isInmmHg: Boolean): Float? {
     if(byteArray == null) return null
+    if (byteArray.size != 2) throw IllegalArgumentException("Invalid byte array: too short/long")
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
-    var exponent = 0
+    val exponent = byteArray[1].toInt() and 0x0F
 
-    if(isInmmHg) {
-        exponent = byteArray[1].toInt() and 0x0F
+    val result = if (isInmmHg) {
+        // Wartości w mmHg - mantysa * 10^exponent
+        mantissa * Math.pow(10.0, exponent.toDouble())
     } else {
-        exponent = 3
+        // Wartości w kPa - zastosowanie wzoru: R = C × M × 10^d × 2^b
+        val M = 1      // Mnożnik
+        val d = 3      // Eksponent dziesiętny
+        val b = 0      // Eksponent binarny
+        mantissa * M * Math.pow(10.0, d.toDouble()) * Math.pow(2.0, b.toDouble()) / 1000 // podzielić na 1000 bo to wynik w Pa?
     }
 
-    val result = mantissa * Math.pow(10.0, exponent.toDouble())
     return result.toFloat()
 }
 
 fun parsePulseMeasurement(byteArray: ByteArray?): Float? {
     if(byteArray == null) return null
+    if (byteArray.size != 2) throw IllegalArgumentException("Invalid byte array: too short/long")
 
     val mantissa = (byteArray[1].toInt() and 0xF0 shl 8) or (byteArray[0].toInt() and 0xFF)
 

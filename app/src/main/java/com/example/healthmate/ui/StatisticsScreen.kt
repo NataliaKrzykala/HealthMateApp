@@ -36,10 +36,15 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -72,7 +77,6 @@ import co.yml.charts.ui.linechart.model.SelectionHighlightPopUp
 import co.yml.charts.ui.linechart.model.ShadowUnderLine
 import com.example.healthmate.R
 import com.example.healthmate.ble.BluetoothViewModel
-import com.example.healthmate.data.DataSource
 import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.data.PomiarZParametrami
 import com.example.healthmate.ui.theme.HealthMateTheme
@@ -244,26 +248,13 @@ fun StatisticsScreen(
                         .align(Alignment.CenterHorizontally)
                         .padding(top = 16.dp),
                 )
+                    ChartWithDateRange(
+                        viewModel = bluetoothViewModel,
+                        urzadzenieId = selectedDevice.urzadzenieId,
+                        selectedDevice = selectedDevice.rodzaj,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
 
-                if (selectedDevice.rodzaj == "termometr") {
-                    TemperatureChartScreen(
-                        viewModel = bluetoothViewModel,
-                        urzadzenieId = selectedDevice.urzadzenieId,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                    )
-                } else if (selectedDevice.rodzaj == "waga") {
-                    WeightScaleChartScreen(
-                        viewModel = bluetoothViewModel,
-                        urzadzenieId = selectedDevice.urzadzenieId,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                    )
-                } else if (selectedDevice.rodzaj == "ciśnieniomierz") {
-                    BPMChartScreen(
-                        viewModel = bluetoothViewModel,
-                        urzadzenieId = selectedDevice.urzadzenieId,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                    )
-                }
         }
     }
 }
@@ -308,7 +299,11 @@ fun DisplayMeasParams(lastPomiar: PomiarZParametrami) {
 
 //region temperature YCHARTS
 @Composable
-fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: Modifier) {
+fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, dateRange: Pair<Long?, Long?>? = null, modifier: Modifier) {
+    //  Przechowywanie zakresu dat
+    //var dateRange by remember { mutableStateOf<Pair<Long?, Long?>>(null to null) }
+    //var isDatePickerVisible by remember { mutableStateOf(false) }
+
     // Uruchamiamy ładowanie danych
     LaunchedEffect(urzadzenieId) {
         viewModel.loadAllPomiaryWithParameters(urzadzenieId)
@@ -332,7 +327,7 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, mo
             }
         }
         else -> {
-            val (pointsData, timestamps) = transformTempMeasToChartData(pomiary)
+            val (pointsData, timestamps) = transformTempMeasToChartData(pomiary, dateRange)
             val steps = 10
 
             val xAxisData = AxisData.Builder()
@@ -432,38 +427,82 @@ fun TemperatureChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, mo
     }
 }
 
-fun transformTempMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Point>, List<String>> {
+//fun transformTempMeasToChartData(pomiary: List<PomiarZParametrami>, dateRange: Pair<Long?, Long?>? = null): Pair<List<Point>, List<String>> {
+//    val pointsData = mutableListOf<Point>()
+//    val timestamps = mutableListOf<String>()
+//
+//    pomiary.forEach { pomiarZParametrami ->
+//        val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
+//
+//        pomiarZParametrami.parametry
+//            .filter { it.nazwa == "temperatura" }
+//            .forEach { parametr ->
+//                pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
+//                if (timestamp != null) {
+//                    timestamps.add(timestamp)
+//                }
+//            }
+//    }
+//
+//    val minGhostPoint = Point(-1f, 33f) // Punkt "widmo" z minimalną temperaturą
+//    val maxGhostPoint = Point(pointsData.size.toFloat(), 43f) // Punkt "widmo" z maksymalną temperaturą
+//    pointsData.add(0, minGhostPoint) // Dodanie na początek listy
+//    pointsData.add(maxGhostPoint)    // Dodanie na koniec listy
+//
+//    timestamps.add(0, "") // Pusta etykieta dla punktu "widmo"
+//    timestamps.add("")    // Pusta etykieta dla drugiego punktu "widmo"
+//
+//    return Pair(pointsData, timestamps)
+//}
+
+fun transformTempMeasToChartData(
+    pomiary: List<PomiarZParametrami>,
+    dateRange: Pair<Long?, Long?>? = null
+): Pair<List<Point>, List<String>> {
     val pointsData = mutableListOf<Point>()
     val timestamps = mutableListOf<String>()
 
+    val (startDateMillis, endDateMillis) = dateRange ?: (null to null)
+    val startDate = startDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+    val endDate = endDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+
     pomiary.forEach { pomiarZParametrami ->
         val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
+        val pomiarDate = pomiarZParametrami.pomiar.data.takeIf { timestamp != null }
+            ?.let { LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate() }
 
-        pomiarZParametrami.parametry
-            .filter { it.nazwa == "temperatura" }
-            .forEach { parametr ->
-                pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
-                if (timestamp != null) {
-                    timestamps.add(timestamp)
+        // Filtruj na podstawie zakresu dat
+        if (pomiarDate != null &&
+            (startDate == null || !pomiarDate.isBefore(startDate)) &&
+            (endDate == null || !pomiarDate.isAfter(endDate))
+        ) {
+            pomiarZParametrami.parametry
+                .filter { it.nazwa == "temperatura" }
+                .forEach { parametr ->
+                    pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
+                    if (timestamp != null) {
+                        timestamps.add(timestamp)
+                    }
                 }
-            }
+        }
     }
 
-    val minGhostPoint = Point(-1f, 33f) // Punkt "widmo" z minimalną temperaturą
-    val maxGhostPoint = Point(pointsData.size.toFloat(), 43f) // Punkt "widmo" z maksymalną temperaturą
-    pointsData.add(0, minGhostPoint) // Dodanie na początek listy
-    pointsData.add(maxGhostPoint)    // Dodanie na koniec listy
+    val minGhostPoint = Point(-1f, 33f)
+    val maxGhostPoint = Point(pointsData.size.toFloat(), 43f)
+    pointsData.add(0, minGhostPoint)
+    pointsData.add(maxGhostPoint)
 
-    timestamps.add(0, "") // Pusta etykieta dla punktu "widmo"
-    timestamps.add("")    // Pusta etykieta dla drugiego punktu "widmo"
+    timestamps.add(0, "")
+    timestamps.add("")
 
     return Pair(pointsData, timestamps)
 }
+
 //endregion
 
 //region weight scale YCHARTS
 @Composable
-fun WeightScaleChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: Modifier) {
+fun WeightScaleChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, dateRange: Pair<Long?, Long?>? = null, modifier: Modifier) {
     // Uruchamiamy ładowanie danych
     LaunchedEffect(urzadzenieId) {
         viewModel.loadAllPomiaryWithParameters(urzadzenieId)
@@ -487,7 +526,7 @@ fun WeightScaleChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, mo
             }
         }
         else -> {
-            val (pointsData, timestamps) = transformWeightMeasToChartData(pomiary)
+            val (pointsData, timestamps) = transformWeightMeasToChartData(pomiary, dateRange)
             val minWeight = pointsData.minOfOrNull { it.y } ?: 0f
             val maxWeight = pointsData.maxOfOrNull { it.y } ?: 0f
             val steps = 5
@@ -592,21 +631,32 @@ fun WeightScaleChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, mo
     }
 }
 
-fun transformWeightMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<Point>, List<String>> {
+fun transformWeightMeasToChartData(pomiary: List<PomiarZParametrami>, dateRange: Pair<Long?, Long?>? = null): Pair<List<Point>, List<String>> {
     val pointsData = mutableListOf<Point>()
     val timestamps = mutableListOf<String>()
 
+    val (startDateMillis, endDateMillis) = dateRange ?: (null to null)
+    val startDate = startDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+    val endDate = endDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+
     pomiary.forEach { pomiarZParametrami ->
         val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
+        val pomiarDate = pomiarZParametrami.pomiar.data.takeIf { timestamp != null }
+            ?.let { LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate() }
 
-        pomiarZParametrami.parametry
-            .filter { it.nazwa == "waga" }
-            .forEach { parametr ->
-                pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
-                if (timestamp != null) {
-                    timestamps.add(timestamp)
+        if (pomiarDate != null &&
+            (startDate == null || !pomiarDate.isBefore(startDate)) &&
+            (endDate == null || !pomiarDate.isAfter(endDate))
+        ) {
+            pomiarZParametrami.parametry
+                .filter { it.nazwa == "waga" }
+                .forEach { parametr ->
+                    pointsData.add(Point(pointsData.size.toFloat(), parametr.wartosc))
+                    if (timestamp != null) {
+                        timestamps.add(timestamp)
+                    }
                 }
-            }
+        }
     }
 
     // Znalezienie pierwszej i ostatniej wagi z punktów danych
@@ -630,7 +680,7 @@ fun transformWeightMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List
 
 //region bpm YCHARTS
 @Composable
-fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: Modifier) {
+fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, dateRange: Pair<Long?, Long?>? = null, modifier: Modifier) {
     // Uruchamiamy ładowanie danych
     LaunchedEffect(urzadzenieId) {
         viewModel.loadAllPomiaryWithParameters(urzadzenieId)
@@ -655,7 +705,7 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
         }
         else -> {
 
-            val (allPointsData, timestamps) = transformBPMMeasToChartData(pomiary)
+            val (allPointsData, timestamps) = transformBPMMeasToChartData(pomiary, dateRange)
 
             // Rozdzielanie list punktów (każda lista zawiera punkty dla jednego parametru)
             val pointsDataSYS = allPointsData[0] // Punkty dla SYS
@@ -913,35 +963,37 @@ fun BPMChartScreen(viewModel: BluetoothViewModel, urzadzenieId: Long, modifier: 
     }
 }
 
-fun transformBPMMeasToChartData(pomiary: List<PomiarZParametrami>): Pair<List<List<Point>>, List<String>> {
+fun transformBPMMeasToChartData(pomiary: List<PomiarZParametrami>, dateRange: Pair<Long?, Long?>? = null): Pair<List<List<Point>>, List<String>> {
     val pointsDataSYS = mutableListOf<Point>()
     val pointsDataDIA = mutableListOf<Point>()
     val pointsDataMAP = mutableListOf<Point>()
     val pointsDataPulse = mutableListOf<Point>()
     val timestamps = mutableListOf<String>()
 
+    val (startDateMillis, endDateMillis) = dateRange ?: (null to null)
+    val startDate = startDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+    val endDate = endDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+
     pomiary.forEach { pomiarZParametrami ->
         val timestamp = convertIsoToCustomFormat(pomiarZParametrami.pomiar.data)
-        if (timestamp != null) {
-            timestamps.add(timestamp)
-        }
+        val pomiarDate = pomiarZParametrami.pomiar.data.takeIf { timestamp != null }
+            ?.let { LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate() }
 
-        pomiarZParametrami.parametry.forEach { parametr ->
-            // Filtr dla "SYS"
-            if (parametr.nazwa == "SYS") {
-                pointsDataSYS.add(Point(pointsDataSYS.size.toFloat(), parametr.wartosc))
+        if (pomiarDate != null &&
+            (startDate == null || !pomiarDate.isBefore(startDate)) &&
+            (endDate == null || !pomiarDate.isAfter(endDate))
+        ) {
+            if (timestamp != null) {
+                timestamps.add(timestamp)
             }
-            // Filtr dla "DIA"
-            if (parametr.nazwa == "DIA") {
-                pointsDataDIA.add(Point(pointsDataDIA.size.toFloat(), parametr.wartosc))
-            }
-            // Filtr dla "MAP"
-            if (parametr.nazwa == "MAP") {
-                pointsDataMAP.add(Point(pointsDataMAP.size.toFloat(), parametr.wartosc))
-            }
-            // Filtr dla "Pulse"
-            if (parametr.nazwa == "puls") {
-                pointsDataPulse.add(Point(pointsDataPulse.size.toFloat(), parametr.wartosc))
+
+            pomiarZParametrami.parametry.forEach { parametr ->
+                when (parametr.nazwa) {
+                    "SYS" -> pointsDataSYS.add(Point(pointsDataSYS.size.toFloat(), parametr.wartosc))
+                    "DIA" -> pointsDataDIA.add(Point(pointsDataDIA.size.toFloat(), parametr.wartosc))
+                    "MAP" -> pointsDataMAP.add(Point(pointsDataMAP.size.toFloat(), parametr.wartosc))
+                    "puls" -> pointsDataPulse.add(Point(pointsDataPulse.size.toFloat(), parametr.wartosc))
+                }
             }
         }
     }
@@ -1044,6 +1096,107 @@ fun convertIsoToCustomFormat(isoDate: String): String? {
         dateTime.format(customFormatter)
     } catch (e: Exception) {
         null // W przypadku niepoprawnego formatu
+    }
+}
+
+@Composable
+fun ChartWithDateRange(
+    viewModel: BluetoothViewModel,
+    urzadzenieId: Long,
+    selectedDevice: String,
+    modifier: Modifier = Modifier
+) {
+    var dateRange by remember { mutableStateOf<Pair<Long?, Long?>>(null to null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        DateRangePickerModal(
+            onDateRangeSelected = { selectedRange ->
+                dateRange = selectedRange
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Button(onClick = { showDatePicker = true }) {
+            Text(text = stringResource(R.string.select_date_renge))
+        }
+
+        if (selectedDevice == "termometr") {
+            TemperatureChartScreen(
+                viewModel = viewModel,
+                urzadzenieId = urzadzenieId,
+                dateRange = dateRange,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+
+        } else if (selectedDevice == "waga") {
+            WeightScaleChartScreen(
+                viewModel = viewModel,
+                urzadzenieId = urzadzenieId,
+                dateRange = dateRange,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+        } else if (selectedDevice == "ciśnieniomierz") {
+            BPMChartScreen(
+                viewModel = viewModel,
+                urzadzenieId = urzadzenieId,
+                dateRange = dateRange,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateRangePickerModal(
+    onDateRangeSelected: (Pair<Long?, Long?>) -> Unit,
+    onDismiss: () -> Unit
+) {
+
+    val dateRangePickerState = rememberDateRangePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDateRangeSelected(
+                        Pair(
+                            dateRangePickerState.selectedStartDateMillis,
+                            dateRangePickerState.selectedEndDateMillis
+                        )
+                    )
+                    onDismiss()
+                }
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    ) {
+        DateRangePicker(
+            state = dateRangePickerState,
+            title = {
+                Text(
+                    text = stringResource(R.string.select_date_renge)
+                )
+            },
+            showModeToggle = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(500.dp)
+                .padding(16.dp)
+        )
     }
 }
 

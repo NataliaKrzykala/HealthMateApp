@@ -34,7 +34,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.healthmate.R
 import com.example.healthmate.ble.BluetoothViewModel
-import com.example.healthmate.data.DataSource
 import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.data.Urzadzenie
 import com.example.healthmate.ui.theme.HealthMateTheme

@@ -4,19 +4,18 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.example.healthmate.R
-import com.example.healthmate.ui.parseBPMFlag
-import com.example.healthmate.ui.parseDIAMeasurement
-import com.example.healthmate.ui.parseMAPMeasurement
-import com.example.healthmate.ui.parseMeasStatusFlag
-import com.example.healthmate.ui.parsePulseMeasurement
-import com.example.healthmate.ui.parseSYSMeasurement
-import com.example.healthmate.ui.parseTemperatureFlag
-import com.example.healthmate.ui.parseTemperatureFromByte
-import com.example.healthmate.ui.parseTimestampFromByte
-import com.example.healthmate.ui.parseWeightMeasurement
-import com.example.healthmate.ui.parseWeightScaleFlag
+import com.example.healthmate.data.parseBPMFlag
+import com.example.healthmate.data.parseDIAMeasurement
+import com.example.healthmate.data.parseMAPMeasurement
+import com.example.healthmate.data.parseMeasStatusFlag
+import com.example.healthmate.data.parsePulseMeasurement
+import com.example.healthmate.data.parseSYSMeasurement
+import com.example.healthmate.data.parseTemperatureFlag
+import com.example.healthmate.data.parseTemperatureFromByte
+import com.example.healthmate.data.parseTimestampFromByte
+import com.example.healthmate.data.parseWeightMeasurement
+import com.example.healthmate.data.parseWeightScaleFlag
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
 abstract class BluetoothDev {
     private var _name: String = ""

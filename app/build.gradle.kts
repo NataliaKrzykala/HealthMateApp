@@ -76,14 +76,36 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation(libs.play.services.tasks)
     implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.junit.ktx)
 
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.mockito)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.junit.jupiter)
 
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
+//    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+//    androidTestImplementation("androidx.test:runner:1.5.2")
+//    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    //testImplementation("junit:junit:5.11.4")
+
+//    androidTestImplementation(libs.androidx.junit)
+//    androidTestImplementation(libs.androidx.espresso.core)
+//    androidTestImplementation(platform(libs.androidx.compose.bom))
+//    androidTestImplementation(libs.androidx.ui.test.junit4)
+
+    // AndroidJUnit4 for Android tests
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+
+    // AndroidJUnitRunner for instrumentation tests
+    androidTestImplementation("androidx.test:runner:1.5.2")
+
+    // AndroidX Test core support (optional but useful)
+    androidTestImplementation("androidx.test:core:1.5.0")
+
+    // Room testing dependencies
+    testImplementation("androidx.room:room-testing:2.5.0")
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

@@ -85,15 +85,12 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 
-@OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun MeasureScreen(
-    modifier: Modifier = Modifier,
     bluetoothHandler: BluetoothHandler,
     bluetoothViewModel: BluetoothViewModel,
     healthMateUiState: HealthMateUiState,
-    bleObserver: BleObserver,
     onCancel: () -> Unit
 ) {
     bluetoothHandler.onDeviceConnectedCallback = { deviceType ->
@@ -101,47 +98,73 @@ fun MeasureScreen(
         bluetoothViewModel.setCurrentDevice(deviceType) // Przekazanie typu urządzenia do ViewModel
     }
 
-    val multiplePermissionsState = rememberMultiplePermissionsState(permissions = permissionsList)
     val connectionState by bluetoothViewModel.connectionStateFlow.collectAsState()
     var hasEnteredDetailsScreen by remember { mutableStateOf(false) }
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.CheckingPermissions) }
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Connecting) }
 
     bluetoothHandler.onConnectionStateChanged = { newState ->
         bluetoothViewModel.onConnectionStateChanged(newState)
     }
 
     val context = LocalContext.current
-    var isLocationEnabled by remember { mutableStateOf(false) }
-    var isBluetoothEnabled by remember { mutableStateOf(false) }
+    var isBluetoothEnabled by remember { mutableStateOf(bluetoothHandler.isBluetoothEnabled()) }
+    var isLocationEnabled by remember { mutableStateOf(isLocationEnabled(context)) }
 
-    LaunchedEffect(Unit) {
-        Log.e("Bluetooth&Location", "Checking if Bluetooth & location are enabled")
-        isBluetoothEnabled = bluetoothHandler.isBluetoothEnabled()
-        isLocationEnabled = isLocationEnabled(context)
+    var isScanning by remember { mutableStateOf(false) }
+
+    val manageScanning = {
+        if (isBluetoothEnabled && isLocationEnabled && !isScanning) {
+            bluetoothHandler.startScanning()
+            isScanning = true
+            Log.d("MeasureScreen", "Skanowanie rozpoczęte")
+        } else if ((!isBluetoothEnabled || !isLocationEnabled) && isScanning) {
+            bluetoothHandler.stopScanning()
+            isScanning = false
+            Log.d("MeasureScreen", "Skanowanie zatrzymane")
+        }
+        else {
+
+        }
     }
 
-    LaunchedEffect(multiplePermissionsState.allPermissionsGranted, isLocationEnabled, isBluetoothEnabled) {
-        if (multiplePermissionsState.allPermissionsGranted) {
-            when {
-                !isBluetoothEnabled -> {
-                    // Prośba o włączenie Bluetooth
-                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                    context.startActivity(enableBtIntent)
-                    isBluetoothEnabled = bluetoothHandler.isBluetoothEnabled() // Aktualizacja stanu
-                }
-                !isLocationEnabled -> {
-                    // Przekierowanie do włączenia lokalizacji
-                    currentScreen = Screen.EnableLocation
-                }
-                else -> {
-                    // Można rozpocząć skanowanie
-                    bluetoothHandler.startScanning()
-                    currentScreen = Screen.Connecting
-                }
+    LaunchedEffect(true) {
+        while (true) {
+            // Sprawdzanie stanu Bluetooth i lokalizacji
+            val bluetoothState = bluetoothHandler.isBluetoothEnabled()
+            val locationState = isLocationEnabled(context)
+
+            // Jeśli stan Bluetooth lub lokalizacji się zmieni, zaktualizuj stany
+            if (bluetoothState != isBluetoothEnabled || locationState != isLocationEnabled) {
+                isBluetoothEnabled = bluetoothState
+                isLocationEnabled = locationState
+                manageScanning() // Zaktualizuj skanowanie
             }
-        } else {
-            currentScreen = Screen.CheckingPermissions
+
+            delay(2000) // Odświeżanie co 2 sekundy
         }
+    }
+
+
+
+    LaunchedEffect(isLocationEnabled, isBluetoothEnabled) { //multiplePermissionsState.allPermissionsGranted,
+        //if (multiplePermissionsState.allPermissionsGranted) {
+        when {
+            !isBluetoothEnabled -> {
+                currentScreen = Screen.EnableBluetoothAndLocation
+            }
+            !isLocationEnabled -> {
+                // Przekierowanie do włączenia lokalizacji
+                currentScreen = Screen.EnableBluetoothAndLocation
+            }
+            else -> {
+                // Można rozpocząć skanowanie
+                bluetoothHandler.startScanning()
+                currentScreen = Screen.Connecting
+            }
+        }
+//        } else {
+//            currentScreen = Screen.CheckingPermissions
+//        }
     }
 
     LaunchedEffect(connectionState) {
@@ -153,9 +176,9 @@ fun MeasureScreen(
     }
 
     when (currentScreen) {
-        Screen.CheckingPermissions -> {
-            ShowPermissions(multiplePermissionsState)
-        }
+//        Screen.CheckingPermissions -> {
+//            ShowPermissions(multiplePermissionsState)
+//        }
 
         Screen.Connecting -> {
             ConnectingAnimationScreen(
@@ -167,8 +190,8 @@ fun MeasureScreen(
             )
         }
 
-        Screen.EnableLocation -> {
-            ShowEnableLocation()
+        Screen.EnableBluetoothAndLocation -> {
+            WaitingScreen()
         }
 
         Screen.Details -> {
@@ -188,9 +211,9 @@ fun MeasureScreen(
 }
 
 enum class Screen {
-    CheckingPermissions,
+    //CheckingPermissions,
     Connecting,
-    EnableLocation,
+    EnableBluetoothAndLocation,
     Details
 }
 
@@ -234,6 +257,24 @@ fun ConnectingAnimationScreen(
         ) {
             Text(text = stringResource(R.string.cancel))
         }
+    }
+}
+
+@Composable
+fun WaitingScreen(
+) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animloading))
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        LottieAnimation(composition = composition, progress = { progress })
     }
 }
 
@@ -380,7 +421,7 @@ fun BluetoothDetailsScreen(
         }
 
     } else {
-        Text(stringResource(R.string.no_dev_connected))
+        WaitingScreen()
     }
 
 //    Button(onClick = onBack) {
