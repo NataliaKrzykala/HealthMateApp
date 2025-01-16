@@ -73,7 +73,7 @@ fun convertTimestampToByteArray(dateTime: LocalDateTime): ByteArray {
     val second = dateTime.second
 
     // Tworzenie tablicy bajtów o odpowiednim rozmiarze
-    val byteArray = ByteArray(8) // 2 + 1 + 1 + 1 + 1 + 1 = 7 bajtów
+    val byteArray = ByteArray(7) // 2 + 1 + 1 + 1 + 1 + 1 = 7 bajtów
 
     // Konwersja roku (2 bajty w LSB)
     byteArray[0] = (year and 0xFF).toByte()        // LSB

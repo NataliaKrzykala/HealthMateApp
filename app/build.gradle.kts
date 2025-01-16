@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.compose.compiler)
-    id("com.google.devtools.ksp") version "2.0.21-1.0.25"  // Wtyczka KSP
+    id("com.google.devtools.ksp") version "2.0.21-1.0.25"
+    alias(libs.plugins.google.gms.google.services)  // Wtyczka KSP
 }
 
 android {
@@ -77,14 +78,27 @@ dependencies {
     implementation(libs.play.services.tasks)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.junit.ktx)
+    implementation(libs.firebase.firestore)
 
-
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlin.test)
+    //NOWE
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
     testImplementation(libs.mockito)
     testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.junit.jupiter)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    testImplementation("androidx.room:room-testing:2.5.0")
+    // END NOWE
 
+//    testImplementation(libs.junit)
+//    testImplementation(libs.kotlin.test)
+//    testImplementation(libs.mockito)
+//    testImplementation(libs.mockito.kotlin)
+//    testImplementation(libs.junit.jupiter)
+//    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+//    testImplementation("app.cash.turbine:turbine:1.0.0")
 //    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 //    androidTestImplementation("androidx.test:runner:1.5.2")
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
@@ -95,17 +109,17 @@ dependencies {
 //    androidTestImplementation(platform(libs.androidx.compose.bom))
 //    androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // AndroidJUnit4 for Android tests
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-
-    // AndroidJUnitRunner for instrumentation tests
-    androidTestImplementation("androidx.test:runner:1.5.2")
-
-    // AndroidX Test core support (optional but useful)
-    androidTestImplementation("androidx.test:core:1.5.0")
-
-    // Room testing dependencies
-    testImplementation("androidx.room:room-testing:2.5.0")
+//    // AndroidJUnit4 for Android tests
+//    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+//
+//    // AndroidJUnitRunner for instrumentation tests
+//    androidTestImplementation("androidx.test:runner:1.5.2")
+//
+//    // AndroidX Test core support (optional but useful)
+//    androidTestImplementation("androidx.test:core:1.5.0")
+//
+//    // Room testing dependencies
+//    testImplementation("androidx.room:room-testing:2.5.0")
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
@@ -119,6 +133,8 @@ dependencies {
     implementation("com.google.accompanist:accompanist-permissions:0.37.0")
 
     implementation ("io.github.ehsannarmani:compose-charts:$composeCharts_version")
+
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Zaktualizuj Room do wersji z obsługą KSP
     implementation("androidx.room:room-runtime:$room_version")

@@ -16,14 +16,14 @@ interface UrzadzenieDAO {
     @Query("SELECT * FROM Urzadzenie WHERE urzadzenieId = :urzadzenieId")
     suspend fun getSensorById(urzadzenieId: Int): Urzadzenie?
 
-    @Query("SELECT * FROM urzadzenie WHERE nazwa = :nazwa")
-    suspend fun getSensorByName(nazwa: String): Urzadzenie?
+//    @Query("SELECT * FROM urzadzenie WHERE nazwa = :nazwa")
+//    suspend fun getSensorByName(nazwa: String): Urzadzenie?
 
     @Query("SELECT * FROM Urzadzenie WHERE nazwa = :nazwa AND uzytkownikId = :uzytkownikId")
     suspend fun getDeviceByNameAndUserId(nazwa: String, uzytkownikId: Long): Urzadzenie?
 
     @Query("SELECT * FROM Urzadzenie")
-    fun getAllSensors(): Flow<List<Urzadzenie>>
+    fun getAllSensors(): List<Urzadzenie>
 
     @Query("SELECT * FROM Urzadzenie WHERE uzytkownikId =:uzytkownikId")
     fun getAllSensorsForUser(uzytkownikId: Long): Flow<List<Urzadzenie>>
@@ -69,6 +69,12 @@ interface PomiarDAO {
 """)
     fun getAllMeasWithParametersByDevId(urzadzenieId: Long): Flow<List<PomiarZParametrami>>
 
+//    @Query("SELECT * FROM Pomiar")
+//    fun getAllMeasurements(): List<Pomiar>
+
+    @Query("SELECT MAX(data) FROM Pomiar WHERE urzadzenieId = :urzadzenieId")
+    fun getLastMeasurementTimestamp(urzadzenieId: Long): String
+
 //    @Query("SELECT * FROM Pomiar WHERE data BETWEEN :poczatek AND :koniec")
 //    suspend fun getMeasurementsByTimeRange(poczatek: String, koniec: String): List<Pomiar> // JAKA JEDNOSTKA DLA TIMESTAMP'U
 }
@@ -83,6 +89,10 @@ interface ParametrPomiaruDAO {
 
     @Query("DELETE FROM ParametrPomiaru")
     suspend fun clearAllParametryPomiaru()
+
+    @Query("SELECT * FROM ParametrPomiaru")
+    fun getAllMeasurementParameters(): List<ParametrPomiaru>
+
 
     //@Query("DELETE FROM ParametrPomiaru WHERE pomiarId = :pomiarId")
     //suspend fun deleteParametersByMeasurementId(pomiarId: Int)
@@ -99,4 +109,6 @@ interface UzytkownikDAO {
     @Query("DELETE FROM Uzytkownik")
     suspend fun clearAllUzytkownik()
 
+    @Query("SELECT * FROM Uzytkownik")
+    fun getAllUsers(): List<Uzytkownik>
 }

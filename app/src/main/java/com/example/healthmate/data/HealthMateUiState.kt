@@ -5,5 +5,6 @@ data class HealthMateUiState (
     val loginAlreadyExists: Boolean = false,
     val isPasswordVisible: Boolean = false,
     val device: Urzadzenie = Urzadzenie(1, 1, "null", "null", "null", "null"),
-    val user: Uzytkownik = Uzytkownik(imie = "null", login = "null", haslo = "null")
+    val user: Uzytkownik = Uzytkownik(imie = "null", login = "null", haslo = "null"),
+    val userNotFound: Boolean = false
 )

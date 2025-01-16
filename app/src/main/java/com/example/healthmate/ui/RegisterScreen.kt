@@ -52,6 +52,18 @@ fun RegisterScreen(
     val healthMateUiState by bluetoothViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
+    // Stany do walidacji pól
+    val isNameValid = bluetoothViewModel.name.isNotBlank() && bluetoothViewModel.name.all { it.isLetter() } && bluetoothViewModel.name.lowercase() != "null" && bluetoothViewModel.name.length <= 15
+    val isUsernameValid = bluetoothViewModel.usernameRegister.isNotBlank() &&
+            bluetoothViewModel.usernameRegister.all { it.isLetterOrDigit() || it in "_-#" } &&  bluetoothViewModel.usernameRegister.lowercase() != "null" &&
+            bluetoothViewModel.usernameRegister != "0" && bluetoothViewModel.usernameRegister.length <= 15
+    val isPasswordValid = bluetoothViewModel.passwordRegister.isNotBlank() &&
+            bluetoothViewModel.passwordRegister.all { it.isLetterOrDigit() || it in "!@#*-_?" }  &&  bluetoothViewModel.passwordRegister.lowercase() != "null" &&
+            bluetoothViewModel.passwordRegister != "0" && bluetoothViewModel.passwordRegister.length <= 15
+
+    // Przycisk aktywny tylko, gdy wszystkie pola są poprawne
+    val isFormValid = isNameValid && isUsernameValid && isPasswordValid
+
     Column(
         modifier = Modifier
             .statusBarsPadding()
@@ -85,7 +97,8 @@ fun RegisterScreen(
                         //bluetoothViewModel.resetLoginState()
                     }
                 )
-            }
+            },
+            enabled = isFormValid
         ) {
             Text(text = stringResource(R.string.register))
             /*Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()*/
@@ -133,19 +146,34 @@ fun RegisterLayout(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     disabledContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                onValueChange = onUserNameChanged,
-                label = {
-                    /*if (isWrong) {
-                        Text(stringResource(R.string.wrong_username))
-                    } else {*/
-                    Text(stringResource(R.string.enter_name))
-                    /*}*/
+                onValueChange = { input ->
+                    if (input.all { it.isLetter() }) {
+                        onUserNameChanged(input)
+                    } else {
+                        onUserNameChanged(input)
+                    }
                 },
+
+                label = {
+                    if (name.any { !it.isLetter() }) {
+                        Text(stringResource(R.string.invalid_characters_message))
+                    } else {
+                        Text(stringResource(R.string.enter_name))
+                    }
+                },
+
+//                label = {
+//                    /*if (isWrong) {
+//                        Text(stringResource(R.string.wrong_username))
+//                    } else {*/
+//                    Text(stringResource(R.string.enter_name))
+//                    /*}*/
+//                },
                 leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = stringResource(
                     R.string.name)
                 )
                 },
-                /*isError = isWrong,*/
+                isError = name.any { !it.isLetter() },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 )
@@ -163,10 +191,18 @@ fun RegisterLayout(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     disabledContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                onValueChange = onUserLoginChanged,
+                onValueChange = { input ->
+                    if (input.all { it.isLetterOrDigit() || it in "_-#" }) {
+                        onUserLoginChanged(input)
+                    } else {
+                        onUserLoginChanged(input)
+                    }
+                },
                 label = {
                     if (isWrong) {
                         Text(stringResource(R.string.wrong_username))
+                    } else if (username.any { !it.isLetterOrDigit() && it !in "_-#" }) {
+                        Text(stringResource(R.string.invalid_characters_message))
                     } else {
                         Text(stringResource(R.string.create_login))
                     }
@@ -175,7 +211,7 @@ fun RegisterLayout(
                     R.string.username)
                 )
                 },
-                isError = isWrong,
+                isError = isWrong || username.any { !it.isLetterOrDigit() && it !in "_-#" },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 )
@@ -193,13 +229,19 @@ fun RegisterLayout(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     disabledContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                onValueChange = onUserPasswordChanged,
+                onValueChange = { input ->
+                    if (input.all { it.isLetterOrDigit() || it in "!@#$%^&*-_?" }) {
+                        onUserPasswordChanged(input)
+                    } else {
+                        onUserPasswordChanged(input) // Wciąż zmieniamy wartość, aby użytkownik widział wprowadzony tekst
+                    }
+                },
                 label = {
-                    /*if (isWrong) {
-                        Text(stringResource(R.string.wrong_password))
-                    } else {*/
+                    if (password.any { !it.isLetterOrDigit() && it !in "!@#$%^&*-_?" }) {
+                        Text(stringResource(R.string.invalid_characters_message))
+                    } else {
                         Text(stringResource(R.string.create_password))
-                    /*}*/
+                    }
                 },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = stringResource(
                     R.string.password)
@@ -220,7 +262,7 @@ fun RegisterLayout(
                         )
                     }
                 },
-                /*isError = isWrong,*/
+                isError = password.any { !it.isLetterOrDigit() && it !in "!@#$%^&*-_?" },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 )

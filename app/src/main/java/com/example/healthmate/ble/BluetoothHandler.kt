@@ -34,6 +34,8 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import android.provider.Settings
 import android.app.AlertDialog
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -243,6 +245,18 @@ class BluetoothHandler(
                 arrayOf(Manifest.permission.BLUETOOTH_ADMIN)
             )
         }
+    }
+
+    fun isNetworkAvailable(): Boolean {
+        val connectivityManager = activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        val isEnabled = capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+
+        if(!isEnabled){
+            Toast.makeText(activity, "Wymagane połączenie z siecią", Toast.LENGTH_SHORT).show()
+        }
+        return isEnabled
     }
     //endregion
 

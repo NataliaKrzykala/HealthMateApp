@@ -60,6 +60,18 @@ fun LogInScreen(
     val healthMateUiState by bluetoothViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
+    // Stany do walidacji pól
+    val isUsernameValid = bluetoothViewModel.username.isNotBlank() &&
+            bluetoothViewModel.username.all { it.isLetterOrDigit() || it in "_-#" } &&  bluetoothViewModel.username.lowercase() != "null" &&
+            bluetoothViewModel.username != "0" && bluetoothViewModel.username.length <= 15
+    val isPasswordValid = bluetoothViewModel.password.isNotBlank() &&
+            bluetoothViewModel.password.all { it.isLetterOrDigit() || it in "!@#*-_?" }  &&  bluetoothViewModel.password.lowercase() != "null" &&
+            bluetoothViewModel.password != "0" && bluetoothViewModel.password.length <= 15
+
+    // Przycisk aktywny tylko, gdy wszystkie pola są poprawne
+    val isFormValid = isUsernameValid && isPasswordValid
+
+
     Column(
         modifier = Modifier
             .statusBarsPadding()
@@ -91,7 +103,8 @@ fun LogInScreen(
                         //bluetoothViewModel.resetLoginState()
                     }
                 )
-            }
+            },
+            enabled = isFormValid
         ) {
             Text(text = stringResource(R.string.log_in))
             /*Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()*/
@@ -144,9 +157,19 @@ fun LogInLayout(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         disabledContainerColor = MaterialTheme.colorScheme.surface,
                     ),
-                    onValueChange = onUserLoginChanged,
+                    onValueChange = { input ->
+                        if (input.all { it.isLetterOrDigit() || it in "_-#" }) {
+                            onUserLoginChanged(input)
+                        } else {
+                            onUserLoginChanged(input)
+                        }
+                    },
                     label = {
-                        Text(stringResource(R.string.enter_username))
+                        if (username.any { !it.isLetterOrDigit() && it !in "_-#" }) {
+                            Text(stringResource(R.string.invalid_characters_message))
+                        } else {
+                            Text(stringResource(R.string.enter_username))
+                        }
                     },
                     leadingIcon = {
                         Icon(
@@ -154,7 +177,7 @@ fun LogInLayout(
                             contentDescription = stringResource(R.string.username)
                         )
                     },
-                    /*isError = isWrong,*/
+                    isError = username.any { !it.isLetterOrDigit() && it !in "_-#" },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done
                     )
@@ -172,10 +195,18 @@ fun LogInLayout(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         disabledContainerColor = MaterialTheme.colorScheme.surface,
                     ),
-                    onValueChange = onUserPasswordChanged,
+                    onValueChange = { input ->
+                        if (input.all { it.isLetterOrDigit() || it in "!@#$%^&*-_?" }) {
+                            onUserPasswordChanged(input)
+                        } else {
+                            onUserPasswordChanged(input) // Wciąż zmieniamy wartość, aby użytkownik widział wprowadzony tekst
+                        }
+                    },
                     label = {
                         if (isWrong) {
                             Text(stringResource(R.string.wrong_password))
+                        } else if(password.any { !it.isLetterOrDigit() && it !in "!@#$%^&*-_?" }){
+                            Text(stringResource(R.string.invalid_characters_message))
                         } else {
                             Text(stringResource(R.string.enter_password))
                         }
@@ -195,7 +226,7 @@ fun LogInLayout(
                             )
                         }
                     },
-                    isError = isWrong,
+                    isError = isWrong || password.any { !it.isLetterOrDigit() && it !in "!@#$%^&*-_?" },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done
                     )

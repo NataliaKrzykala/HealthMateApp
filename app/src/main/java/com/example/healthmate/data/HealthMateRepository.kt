@@ -2,11 +2,17 @@ package com.example.healthmate.data
 
 import android.util.Log
 import androidx.annotation.WorkerThread
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
-class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val pomiarDAO: PomiarDAO, private val parametrPomiaruDAO: ParametrPomiaruDAO, private val uzytkownikDAO: UzytkownikDAO) {
+class HealthMateRepository(
+    private val urzadzenieDAO: UrzadzenieDAO,
+    private val pomiarDAO: PomiarDAO,
+    private val parametrPomiaruDAO: ParametrPomiaruDAO,
+    private val uzytkownikDAO: UzytkownikDAO
+){
 
     suspend fun clearDatabase() {
         urzadzenieDAO.clearAllSensors()
@@ -33,6 +39,10 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
     fun getAllSensorsForUser(userId: Long): Flow<List<Urzadzenie>> {
         return urzadzenieDAO.getAllSensorsForUser(userId)
     }
+
+    fun getAllSensors(): List<Urzadzenie> {
+        return urzadzenieDAO.getAllSensors()
+    }
     //endregion
 
     //region Measurement-related operations
@@ -51,12 +61,20 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
         return pomiarDAO.getLastMeasWithParametersByDevId(urzadzenieId)
     }
 
-    suspend fun getAllMeasWithParametersByDevId(urzadzenieId: Long): Flow<List<PomiarZParametrami>> {
+    fun getAllMeasWithParametersByDevId(urzadzenieId: Long): Flow<List<PomiarZParametrami>> {
         return pomiarDAO.getAllMeasWithParametersByDevId(urzadzenieId)
     }
 
     suspend fun checkIfMeasurementExists(deviceId: Long, timestamp: String): Boolean {
         return pomiarDAO.doesMeasurementExist(deviceId, timestamp)
+    }
+
+//    suspend fun getAllMeasurements(): List<Pomiar> {
+//        return pomiarDAO.getAllMeasurements()
+//    }
+
+    fun getLastMeasurementTimestamp(deviceId: Long): String {
+        return pomiarDAO.getLastMeasurementTimestamp(deviceId)
     }
     //endregion
 
@@ -65,6 +83,10 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
         withContext(Dispatchers.IO) {
             parametrPomiaruDAO.insertMeasurementParameter(parametrPomiaru)
         }
+    }
+
+    fun getAllMeasurementParameters(): List<ParametrPomiaru> {
+        return parametrPomiaruDAO.getAllMeasurementParameters()
     }
     //endregion
 
@@ -82,6 +104,10 @@ class HealthMateRepository(private val urzadzenieDAO: UrzadzenieDAO, private val
         return withContext(Dispatchers.IO) {
             uzytkownikDAO.getUserByLogin(login)
         }
+    }
+
+    fun getAllUsers(): List<Uzytkownik> {
+        return uzytkownikDAO.getAllUsers()
     }
     //endregion
 }

@@ -105,5 +105,6 @@
     <string name="negative_button_text">Nie</string>
 
     <string name="turn_on_bt">Włącz Bluetooth aby aplikacja działała poprawnie!</string>
+    <string name="invalid_characters_message">Wprowadzono niedozwolone znaki</string>
 
 </resources>
