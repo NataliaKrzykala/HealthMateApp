@@ -371,7 +371,16 @@ class BluetoothHandler(
 
     //region Enable indication functions (write descriptor, enable indication/notifications)
     suspend fun handleDeviceActions(services: List<BluetoothGattService>, deviceType: BluetoothDev?) {
+
+//        val characteristic = services
+//            .find { it.uuid == BluetoothUUIDs.UUID_GAP_SERVICE }
+//            ?.getCharacteristic(BluetoothUUIDs.UUID_PREFERRED_PARAMETERS_CHARACTERISTIC)
+//        characteristic?.let {
+//            enableNotifications(it)
+//        }
+
         //updateDateTime(services)
+
         when (deviceType) {
             is Thermometer -> {
                 val characteristic = services

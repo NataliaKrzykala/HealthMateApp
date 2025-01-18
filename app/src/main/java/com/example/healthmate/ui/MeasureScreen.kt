@@ -336,7 +336,7 @@ fun BluetoothDetailsScreen(
         val parsedData = device?.parseData(characteristicValue)
         if (parsedData != null) {
             bluetoothViewModel.saveDeviceAndMeasurement(
-                loggedUser.uzytkownikId,
+                loggedUser.login,
                 characteristicValues,
                 device!!,
                 devName,

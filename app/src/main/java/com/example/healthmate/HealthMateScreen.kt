@@ -139,6 +139,7 @@ fun HealthMateApp(
                 LogInScreen(
                     onLogInButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
                     bluetoothViewModel = bluetoothViewModel,
+                    bluetoothHandler = bluetoothHandler,
                     modifier = Modifier.fillMaxHeight()
                 )
             }
@@ -147,6 +148,7 @@ fun HealthMateApp(
                     onSubmitButtonClicked = { navController.navigate(HealthMateScreen.MainPanel.name) },
                     /*onCancelButtonClicked = { cancelAndNavigateToStart(viewModel, navController) },*/
                     bluetoothViewModel = bluetoothViewModel,
+                    bluetoothHandler = bluetoothHandler,
                     modifier = Modifier.fillMaxHeight()
                 )
             }

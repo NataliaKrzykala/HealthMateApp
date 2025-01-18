@@ -5,8 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "Uzytkownik")
 data class Uzytkownik(
-    @PrimaryKey(autoGenerate = true) val uzytkownikId: Long = 0,
+    @PrimaryKey(autoGenerate = false) val login: String,
     val imie: String,
-    val login: String,
     val haslo: String
 )

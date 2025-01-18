@@ -19,14 +19,14 @@ interface UrzadzenieDAO {
 //    @Query("SELECT * FROM urzadzenie WHERE nazwa = :nazwa")
 //    suspend fun getSensorByName(nazwa: String): Urzadzenie?
 
-    @Query("SELECT * FROM Urzadzenie WHERE nazwa = :nazwa AND uzytkownikId = :uzytkownikId")
-    suspend fun getDeviceByNameAndUserId(nazwa: String, uzytkownikId: Long): Urzadzenie?
+    @Query("SELECT * FROM Urzadzenie WHERE nazwa = :nazwa AND uzytkownikLogin = :uzytkownikLogin")
+    suspend fun getDeviceByNameAndUserLogin(nazwa: String, uzytkownikLogin: String): Urzadzenie?
 
     @Query("SELECT * FROM Urzadzenie")
     fun getAllSensors(): List<Urzadzenie>
 
-    @Query("SELECT * FROM Urzadzenie WHERE uzytkownikId =:uzytkownikId")
-    fun getAllSensorsForUser(uzytkownikId: Long): Flow<List<Urzadzenie>>
+    @Query("SELECT * FROM Urzadzenie WHERE uzytkownikLogin =:uzytkownikLogin")
+    fun getAllSensorsForUser(uzytkownikLogin: String): Flow<List<Urzadzenie>>
 
     @Query("DELETE FROM Urzadzenie")
     suspend fun clearAllSensors()
@@ -39,9 +39,6 @@ interface UrzadzenieDAO {
 interface PomiarDAO {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMeasurement(pomiar: Pomiar): Long
-
-    //@Query("SELECT * FROM Measurement WHERE userId = :userId")
-    //suspend fun getMeasurementsByUserId(userId: Int): List<Measurement>
 
     @Query("SELECT * FROM Pomiar WHERE urzadzenieId = :urzadzenieId")
     suspend fun getMeasurementsBySensorId(urzadzenieId: Int): List<Pomiar>
@@ -101,7 +98,7 @@ interface ParametrPomiaruDAO {
 @Dao
 interface UzytkownikDAO {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertUzytkownik(uzytkownik: Uzytkownik): Long
+    suspend fun insertUzytkownik(uzytkownik: Uzytkownik)
 
     @Query("SELECT * FROM Uzytkownik WHERE login = :login")
     suspend fun getUserByLogin(login: String): Uzytkownik

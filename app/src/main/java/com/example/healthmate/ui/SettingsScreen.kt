@@ -42,7 +42,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Witaj, ${loggedUser.imie}!")
+        Text(text = "Witaj, ${loggedUser.login}!")
 
         Spacer(modifier = Modifier.height(16.dp))
 

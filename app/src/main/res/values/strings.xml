@@ -13,7 +13,7 @@
     <string name="username">Login</string>
     <string name="password">Hasło</string>
     <string name="enter_name">Wpisz imię</string>
-    <string name="wrong_username">Niepoprawny login</string>
+    <string name="wrong_username">Login już istnieje</string>
     <string name="enter_username">Wpisz login</string>
     <string name="wrong_password">Niepoprawne hasło</string>
     <string name="enter_password">Wpisz hasło</string>

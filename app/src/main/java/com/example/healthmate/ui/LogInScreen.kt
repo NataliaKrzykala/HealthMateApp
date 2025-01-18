@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.healthmate.HealthMateApp
+import com.example.healthmate.ble.BluetoothHandler
 import com.example.healthmate.ble.BluetoothViewModel
 import com.example.healthmate.data.HealthMateUiState
 import com.example.healthmate.data.Uzytkownik
@@ -55,7 +56,8 @@ import com.example.healthmate.ui.theme.HealthMateTheme
 fun LogInScreen(
     bluetoothViewModel: BluetoothViewModel,
     onLogInButtonClicked: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bluetoothHandler: BluetoothHandler
 ){
     val healthMateUiState by bluetoothViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
@@ -97,12 +99,14 @@ fun LogInScreen(
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                bluetoothViewModel.attemptLogin(
-                    onSuccess = onLogInButtonClicked,
-                    onFailure = {
-                        //bluetoothViewModel.resetLoginState()
-                    }
-                )
+                if (bluetoothHandler.isNetworkAvailable()) {
+                    bluetoothViewModel.attemptLogin(
+                        onSuccess = onLogInButtonClicked,
+                        onFailure = {
+                            //bluetoothViewModel.resetLoginState()
+                        }
+                    )
+                }
             },
             enabled = isFormValid
         ) {

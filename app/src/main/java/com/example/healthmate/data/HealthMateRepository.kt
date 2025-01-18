@@ -23,7 +23,7 @@ class HealthMateRepository(
 
     //region Sensor-related operations
     suspend fun addSensor(urzadzenie: Urzadzenie): Long {
-        val existingDevice = urzadzenieDAO.getDeviceByNameAndUserId(urzadzenie.nazwa, urzadzenie.uzytkownikId)
+        val existingDevice = urzadzenieDAO.getDeviceByNameAndUserLogin(urzadzenie.nazwa, urzadzenie.uzytkownikLogin)
         return if (existingDevice == null) {
             // Jeśli urządzenie nie istnieje, zapisz je i zwróć ID nowo dodanego urządzenia
             val deviceId = urzadzenieDAO.insertSensor(urzadzenie)
@@ -36,8 +36,8 @@ class HealthMateRepository(
         }
     }
 
-    fun getAllSensorsForUser(userId: Long): Flow<List<Urzadzenie>> {
-        return urzadzenieDAO.getAllSensorsForUser(userId)
+    fun getAllSensorsForUser(userLogin: String): Flow<List<Urzadzenie>> {
+        return urzadzenieDAO.getAllSensorsForUser(userLogin)
     }
 
     fun getAllSensors(): List<Urzadzenie> {
@@ -91,13 +91,13 @@ class HealthMateRepository(
     //endregion
 
     //region User-related operations
-    suspend fun addUser(uzytkownik: Uzytkownik): Long {
+    suspend fun addUser(uzytkownik: Uzytkownik): String {
         val existingUser = uzytkownikDAO.getUserByLogin(uzytkownik.login)
         return if (existingUser == null) {
-             val userId = uzytkownikDAO.insertUzytkownik(uzytkownik)
-             userId
+             uzytkownikDAO.insertUzytkownik(uzytkownik)
+             uzytkownik.login
         }else{
-            existingUser.uzytkownikId
+            existingUser.login
         }
     }
     suspend fun getUserByLogin(login: String): Uzytkownik? {

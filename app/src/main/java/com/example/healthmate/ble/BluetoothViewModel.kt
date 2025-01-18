@@ -35,6 +35,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.log
 
 class BluetoothViewModel(
         bluetoothHandler: BluetoothHandler,
@@ -85,7 +86,7 @@ class BluetoothViewModel(
         //region Database: device, meas and meas parameters save + devices & last meas display
 
         // Funkcja do zapisywania urządzenia i potem pomiaru
-        fun saveDeviceAndMeasurement(userId: Long, values: Map<UUID, String>, deviceType: BluetoothDev, devName: String?, parsedData: Map<String, Any>,
+        fun saveDeviceAndMeasurement(userLogin: String, values: Map<UUID, String>, deviceType: BluetoothDev, devName: String?, parsedData: Map<String, Any>,
                                      unknown: String, noInfo:String, thermometerName: String, weightScaleName: String, bpmName: String, temperatureName: String, pulseName: String, timeOfMeas: String) {
 
             viewModelScope.launch {
@@ -99,7 +100,7 @@ class BluetoothViewModel(
 
                 // Tworzymy obiekt Urzadzenie
                 val urzadzenie = Urzadzenie(
-                    uzytkownikId = userId,
+                    uzytkownikLogin = userLogin,
                     nazwa = nazwa,
                     producent = hexToString(producent),
                     rodzaj = rodzaj,
@@ -257,9 +258,9 @@ class BluetoothViewModel(
         private val _sensorsForUser = MutableStateFlow<List<Urzadzenie>>(emptyList())
         val sensorsForUser: StateFlow<List<Urzadzenie>> = _sensorsForUser
 
-        fun loadSensorsForUser(userId: Long) {
+        fun loadSensorsForUser(userLogin: String) {
             viewModelScope.launch {
-                repository.getAllSensorsForUser(userId).collect { sensors ->
+                repository.getAllSensorsForUser(userLogin).collect { sensors ->
                     _sensorsForUser.value = sensors
                 }
             }
@@ -358,19 +359,112 @@ class BluetoothViewModel(
     }
 
     suspend fun isAuthenticationWrong(): Boolean {
-        val user = repository.getUserByLogin(username)
 
-        val updatedUiState = if (user != null && password == user.haslo) {
-            _uiState.value.copy(areCredentialsWrong = false)
+        val userDocRef = firestore.collection("users").document(username)
+        val userSnapshot = userDocRef.get().await()
+        val isInFirestore = userSnapshot.exists()
+
+        val localUser = repository.getUserByLogin(username)
+        val isLocally = localUser != null
+
+        return if (isLocally) {
+            // Użytkownik istnieje lokalnie, porównaj hasło lokalne
+            val isPasswordCorrect = password == localUser?.haslo
+            _uiState.value = _uiState.value.copy(areCredentialsWrong = !isPasswordCorrect)
+            !isPasswordCorrect
+        } else if (isInFirestore) {
+            // Użytkownik istnieje tylko w Firestore, pobierz dane
+            val firestorePassword = userSnapshot.getString("haslo") ?: ""
+            val isPasswordCorrect = password == firestorePassword
+
+            if (isPasswordCorrect) {
+                // Zapisz użytkownika lokalnie
+                val newLocalId = repository.addUser(
+                    Uzytkownik(
+                        imie = userSnapshot.getString("imie") ?: "",
+                        login = username,
+                        haslo = firestorePassword
+                    )
+                )
+
+                // Aktualizuj ID w Firestore
+                //userDocRef.update("uzytkownikId", newLocalId).await()
+
+                _uiState.value = _uiState.value.copy(areCredentialsWrong = false)
+                false
+            } else {
+                _uiState.value = _uiState.value.copy(areCredentialsWrong = true)
+                true
+            }
         } else {
-            _uiState.value.copy(areCredentialsWrong = true)
+            // Użytkownik nie istnieje ani lokalnie, ani w Firestore
+            _uiState.value = _uiState.value.copy(areCredentialsWrong = true)
+            true
         }
-        _uiState.value = updatedUiState
 
-        return updatedUiState.areCredentialsWrong
+//        val user = repository.getUserByLogin(username)
+//        val isLocally = user != null
+//
+//        val requiresInternet = !isLocally
+//        val isInFirestore: Boolean
+//        var isPasswordCorrect = false
+//
+//        if (isLocally) {
+//            // Sprawdzanie lokalne
+//            isPasswordCorrect = password == user!!.haslo
+//            isInFirestore = true // Zakładamy, że lokalny użytkownik musi istnieć w Firestore
+//        } else {
+//            // Sprawdzanie w chmurze
+//            val userDocRef = firestore.collection("users").document(username)
+//            val userSnapshot = userDocRef.get().await()
+//            isInFirestore = userSnapshot.exists()
+//
+//            if (isInFirestore) {
+//                val storedPassword = userSnapshot.getString("haslo")
+//                isPasswordCorrect = password == storedPassword
+//
+//                if(isPasswordCorrect){
+//
+//                }
+//            }
+//        }
+//
+//        val areCredentialsWrong = !(isLocally || isInFirestore) || !isPasswordCorrect
+//
+//        _uiState.value = _uiState.value.copy(
+//            areCredentialsWrong = areCredentialsWrong,
+//            requiresInternet = requiresInternet
+//        )
+//
+//        return areCredentialsWrong
+
+//        val userDocRef = firestore.collection("users").document(username)
+//        val userSnapshot = userDocRef.get().await()
+//        val isInFirestore = userSnapshot.exists()
+
+
+
+//        val updatedUiState = if(isLocally && isInFirestore){
+//
+//        } else if (isInFirestore && !isLocally) {
+//
+//
+//        } else {
+//
+//        }
+//
+//        val updatedUiState = if (user != null && password == user.haslo) {
+//            _uiState.value.copy(areCredentialsWrong = false)
+//        } else {
+//            _uiState.value.copy(areCredentialsWrong = true)
+//        }
+//        _uiState.value = updatedUiState
+//
+//        return updatedUiState.areCredentialsWrong
     }
 
     fun attemptLogin(onSuccess: () -> Unit, onFailure: () -> Unit) {
+
         viewModelScope.launch {
             val areCredentialsWrong = isAuthenticationWrong()
 
@@ -386,19 +480,72 @@ class BluetoothViewModel(
                 onFailure()
             }
         }
+
+//        viewModelScope.launch {
+//            val areCredentialsWrong = isAuthenticationWrong()
+//
+//            if (!areCredentialsWrong) {
+//                val user = repository.getUserByLogin(username)
+//                if (user != null) {
+//                    // Zalogowanie użytkownika lokalnego
+//                    loggedUser(user)
+//                } else {
+//                    // Zalogowanie użytkownika z chmury
+//                    val userDocRef = firestore.collection("users").document(username)
+//                    val userSnapshot = userDocRef.get().await()
+//                    val cloudUser = Uzytkownik(
+//                        imie = userSnapshot.getString("imie") ?: "",
+//                        login = userSnapshot.getString("login") ?: "",
+//                        haslo = userSnapshot.getString("haslo") ?: ""
+//                    )
+//                    loggedUser(cloudUser)
+//                }
+//                onSuccess()
+//            } else {
+//                username = ""
+//                password = ""
+//                onFailure()
+//            }
+//        }
+
+//        viewModelScope.launch {
+//            val areCredentialsWrong = isAuthenticationWrong()
+//
+//            if (!areCredentialsWrong) {
+//                val user = repository.getUserByLogin(username)
+//                if (user != null) {
+//                    loggedUser(user) // Ustaw jako zalogowanego
+//                    onSuccess()
+//                }
+//            } else {
+//                username = ""
+//                password = ""
+//                onFailure()
+//            }
+//        }
     }
 
-    suspend fun isLoginWrong(): Boolean{
-        val user = repository.getUserByLogin(usernameRegister)
+    suspend fun isLoginWrong(): Boolean {
 
-        val updatedUiState = if (user != null && usernameRegister.equals(user.login)) {
-            _uiState.value.copy(loginAlreadyExists = true)
-        } else {
-            _uiState.value.copy(loginAlreadyExists = false)
-        }
-        _uiState.value = updatedUiState
+        val userDocRef = firestore.collection("users").document(usernameRegister)
+        val userSnapshot = userDocRef.get().await()
 
-        return updatedUiState.loginAlreadyExists
+        val loginAlreadyExists = userSnapshot.exists()
+        _uiState.value = _uiState.value.copy(
+            loginAlreadyExists = loginAlreadyExists
+        )
+        return loginAlreadyExists
+
+//        val user = repository.getUserByLogin(usernameRegister)
+//
+//        val updatedUiState = if (user != null && usernameRegister.equals(user.login)) {
+//            _uiState.value.copy(loginAlreadyExists = true)
+//        } else {
+//            _uiState.value.copy(loginAlreadyExists = false)
+//        }
+//        _uiState.value = updatedUiState
+//
+//        return updatedUiState.loginAlreadyExists
     }
 
     fun attemptRegistration(onSuccess: () -> Unit, onFailure: () -> Unit) {
@@ -406,28 +553,54 @@ class BluetoothViewModel(
             val loginAlreadyExists = isLoginWrong()
 
             if (!loginAlreadyExists) {
-                addNewUser()
+                val login = addNewUser()
+                addNewUserToFirestore()
                 onSuccess()
             } else {
-                usernameRegister = ""
-                passwordRegister = ""
                 onFailure()
             }
         }
     }
 
-    suspend fun addNewUser() {
+//    fun attemptRegistration(onSuccess: () -> Unit, onFailure: () -> Unit) {
+//        viewModelScope.launch {
+//            val loginAlreadyExists = isLoginWrong()
+//
+//            if (!loginAlreadyExists) {
+//                addNewUser()
+//                onSuccess()
+//            } else {
+//                usernameRegister = ""
+//                passwordRegister = ""
+//                onFailure()
+//            }
+//        }
+//    }
+
+    suspend fun addNewUserToFirestore() {
+        val userDocRef = firestore.collection("users").document(usernameRegister)
+        val newUser = mapOf(
+            "imie" to name,
+            "login" to usernameRegister,
+            "haslo" to passwordRegister
+        )
+        userDocRef.set(newUser).await()
+    }
+
+    suspend fun addNewUser(): String {
         //viewModelScope.launch {
             val user = Uzytkownik(
                 imie = name,
                 login = usernameRegister,
                 haslo = passwordRegister
             )
-            val userId = repository.addUser(user)
-            if (userId != null) {
-                val newUser = user.copy(uzytkownikId = userId)
-                loggedUser(newUser)
+            val userLogin = repository.addUser(user)
+            if (userLogin != null) {
+                //val newUser = user.copy(uzytkownikId = userId)
+                loggedUser(user)
+                return userLogin
             } else {
+                return ""
             }
        // }
     }
@@ -478,7 +651,7 @@ class BluetoothViewModel(
 
             // Krok 1: Sprawdź użytkownika
             _backupState.value = BackupState.Progress(++completedSteps, totalSteps)
-            val userDocRef = firestore.collection("users").document(loggedUser.uzytkownikId.toString())
+            val userDocRef = firestore.collection("users").document(loggedUser.login)
             val userSnapshot = userDocRef.get().await()
 
             if (!userSnapshot.exists()) {
@@ -492,11 +665,11 @@ class BluetoothViewModel(
 
             // Krok 2: Synchronizacja urządzeń
             _backupState.value = BackupState.Progress(++completedSteps, totalSteps)
-            syncDevices(loggedUser.uzytkownikId)
+            syncDevices(loggedUser.login)
 
             // Krok 3: Synchronizacja pomiarów
             _backupState.value = BackupState.Progress(++completedSteps, totalSteps)
-            syncMeasurementsAndParameters(loggedUser.uzytkownikId)
+            syncMeasurementsAndParameters(loggedUser.login)
 
             _backupState.value = BackupState.Success("Backup completed successfully!")
         } catch (e: Exception) {
@@ -507,9 +680,9 @@ class BluetoothViewModel(
         }
     }
 
-    private suspend fun syncDevices(userId: Long) = withContext(Dispatchers.IO)  {
-        val devicesInFirestore = getDevicesFromFirestore(userId)
-        val devicesInLocal = repository.getAllSensors().filter { it.uzytkownikId == userId }
+    private suspend fun syncDevices(login: String) = withContext(Dispatchers.IO)  {
+        val devicesInFirestore = getDevicesFromFirestore(login)
+        val devicesInLocal = repository.getAllSensors().filter { it.uzytkownikLogin == login }
 
         devicesInLocal.forEach { device ->
             if (devicesInFirestore.none { it["urzadzenieId"] == device.urzadzenieId.toString() }) {
@@ -519,7 +692,7 @@ class BluetoothViewModel(
                     "rodzaj" to device.rodzaj,
                     "model" to device.model,
                     "producent" to device.producent,
-                    "uzytkownikId" to userId
+                    "uzytkownikLogin" to login
                 )
                 firestore.collection("devices").document(device.urzadzenieId.toString()).set(deviceData).await()
             }
@@ -530,10 +703,10 @@ class BluetoothViewModel(
         //syncMeasurementsAndParameters(userId)
     }
 
-    private suspend fun getDevicesFromFirestore(userId: Long): List<Map<String, Any>> {
+    private suspend fun getDevicesFromFirestore(login: String): List<Map<String, Any>> {
         return try {
             val snapshot = firestore.collection("devices")
-                .whereEqualTo("uzytkownikId", userId)
+                .whereEqualTo("uzytkownikLogin", login)
                 .get()
                 .await()
             snapshot.documents.map { it.data ?: emptyMap() }
@@ -543,8 +716,8 @@ class BluetoothViewModel(
         }
     }
 
-    private suspend fun syncMeasurementsAndParameters(userId: Long) = withContext(Dispatchers.IO) {
-        val devicesInLocal = repository.getAllSensors().filter { it.uzytkownikId == userId }
+    private suspend fun syncMeasurementsAndParameters(login: String) = withContext(Dispatchers.IO) {
+        val devicesInLocal = repository.getAllSensors().filter { it.uzytkownikLogin == login }
 
         devicesInLocal.forEach { device ->
             val lastFirestoreMeasurementTimestamp = getLastMeasurementTimestampFromFirestore(device.urzadzenieId)
@@ -604,13 +777,22 @@ class BluetoothViewModel(
         Log.d("Backup restore", "Restoring data started")
         //_backupState.value = BackupState.Loading
 
+
+
         try {
             val totalSteps = 3 // Liczba etapów do śledzenia postępu
             var completedSteps = 0
 
+            val userDocRef = firestore.collection("users").document(loggedUser.login)
+            val userSnapshot = userDocRef.get().await()
+
+            if (!userSnapshot.exists()) {
+                return
+            }
+
             // Pobierz urządzenia użytkownika z Firestore
             _restoreState.value = RevertBackupState.Progress(completedSteps, totalSteps)
-            val devicesInFirestore = getDevicesFromFirestore(loggedUser.uzytkownikId)
+            val devicesInFirestore = getDevicesFromFirestore(loggedUser.login)
 
             devicesInFirestore.forEach { device ->
                 val deviceIdLong: Long = (device["urzadzenieId"] as? Long) ?: -1L
@@ -626,7 +808,7 @@ class BluetoothViewModel(
                         rodzaj = (device["rodzaj"] as? String) ?: "",
                         model = (device["model"] as? String) ?: "",
                         producent = (device["producent"] as? String) ?: "",
-                        uzytkownikId = loggedUser.uzytkownikId // Przypisujemy użytkownika
+                        uzytkownikLogin = loggedUser.login// Przypisujemy użytkownika
                     )
 
                     withContext(Dispatchers.IO) {

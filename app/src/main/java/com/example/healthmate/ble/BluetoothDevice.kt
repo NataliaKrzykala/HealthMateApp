@@ -15,6 +15,7 @@ import com.example.healthmate.data.parseTemperatureFromByte
 import com.example.healthmate.data.parseTimestampFromByte
 import com.example.healthmate.data.parseWeightMeasurement
 import com.example.healthmate.data.parseWeightScaleFlag
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 abstract class BluetoothDev {
@@ -61,7 +62,10 @@ class Thermometer : BluetoothDev() {
                     val formattedDateTime = timestamp?.format(formatter)
                     formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
                 } else {
-                    //Log.d("No flag")
+                    val timestamp = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
+                    val formattedDateTime = timestamp?.format(formatter)
+                    formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
                 }
 
                 /*if (flagResult.isTemperatureTypePresent) {
@@ -114,7 +118,10 @@ class WeightScale : BluetoothDev() {
                     val formattedDateTime = timestamp?.format(formatter)
                     formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
                 } else {
-                    //Log.d("No flag")
+                    val timestamp = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
+                    val formattedDateTime = timestamp?.format(formatter)
+                    formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
                 }
 
                 /*TODO: isUserIdPresent and isHeightPresent*/
@@ -178,83 +185,179 @@ class BloodPressureMonitor : BluetoothDev() {
                     val formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
                     val formattedDateTime = timestamp?.format(formatter)
                     formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
-                }
 
-                if (flagResult.isPulsePresent) {
-                    val PulseMeas = parsePulseMeasurement(characteristicValue.copyOfRange(14, 16))
-                    PulseMeas?.let { Pulse ->
-                        val unit = "/min"
-                        resultMap[stringResource(R.string.pulse)] = "$Pulse $unit"
-                        resultMap["PulseResult"] = Pulse
-                        resultMap["PulseUnit"] = "$unit"
-                    }
-                }
-
-                if (flagResult.isMeasStatusFlagPresent) {
-                    //val byteArray = characteristicValue.takeLast(2).toByteArray()
-                    val measStatusFlagResult = parseMeasStatusFlag(characteristicValue[16])
-
-                    if (measStatusFlagResult != null) {
-                        if(measStatusFlagResult.noBodyMovement) {
-                            measStatusFlagResult?.let { flag0 ->
-                                resultMap[stringResource(R.string.body_movement_detected)] = stringResource(R.string.no)
-                            }
-                        } else {
-                            measStatusFlagResult?.let { flag1 ->
-                                resultMap[stringResource(R.string.body_movement_detected)] = stringResource(R.string.yes)
-                            }
-                        }
-
-                        if(measStatusFlagResult.cuffsFitProperly) {
-                            measStatusFlagResult?.let { flag2 ->
-                                resultMap[stringResource(R.string.cuffs_fit)] = stringResource(R.string.yes)
-                            }
-                        } else {
-                            measStatusFlagResult?.let { flag3 ->
-                                resultMap[stringResource(R.string.cuffs_fit)] = stringResource(R.string.no)
-                            }
-                        }
-
-                        if(measStatusFlagResult.noIrregularPulseDetected) {
-                            measStatusFlagResult?.let { flag4 ->
-                                resultMap[stringResource(R.string.irregular_pulse_detected)] = stringResource(R.string.no)
-                            }
-                        } else {
-                            measStatusFlagResult?.let { flag5 ->
-                                resultMap[stringResource(R.string.irregular_pulse_detected)] = stringResource(R.string.yes)
-                            }
-                        }
-
-                        if(measStatusFlagResult.pulseStatus == 0) {
-                            measStatusFlagResult?.let { flag6 ->
-                                resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.proper)
-                            }
-                        } else if(measStatusFlagResult.pulseStatus == 1) {
-                            measStatusFlagResult?.let { flag6 ->
-                                resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.over_the_proper)
-                            }
-                        } else if(measStatusFlagResult.pulseStatus == 2) {
-                            measStatusFlagResult?.let { flag6 ->
-                                resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.below_the_proper)
-                            }
-                        } else if(measStatusFlagResult.pulseStatus == 3) {
-                            measStatusFlagResult?.let { flag6 ->
-                                resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.no_info)
-                            }
-                        }
-
-                        if(measStatusFlagResult.properMeasurementPosition) {
-                            measStatusFlagResult?.let { flag7 ->
-                                resultMap[stringResource(R.string.proper_meas_position)] = stringResource(R.string.yes)
-                            }
-                        } else {
-                            measStatusFlagResult?.let { flags ->
-                                resultMap[stringResource(R.string.proper_meas_position)] = stringResource(R.string.no)
-                            }
+                    if (flagResult.isPulsePresent) {
+                        val PulseMeas = parsePulseMeasurement(characteristicValue.copyOfRange(14, 16))
+                        PulseMeas?.let { Pulse ->
+                            val unit = "/min"
+                            resultMap[stringResource(R.string.pulse)] = "$Pulse $unit"
+                            resultMap["PulseResult"] = Pulse
+                            resultMap["PulseUnit"] = "$unit"
                         }
                     }
-                } else {
 
+                    if (flagResult.isMeasStatusFlagPresent) {
+                        //val byteArray = characteristicValue.takeLast(2).toByteArray()
+                        val measStatusFlagResult = parseMeasStatusFlag(characteristicValue[16])
+
+                        if (measStatusFlagResult != null) {
+                            if(measStatusFlagResult.noBodyMovement) {
+                                measStatusFlagResult?.let { flag0 ->
+                                    resultMap[stringResource(R.string.body_movement_detected)] = stringResource(R.string.no)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flag1 ->
+                                    resultMap[stringResource(R.string.body_movement_detected)] = stringResource(R.string.yes)
+                                }
+                            }
+
+                            if(measStatusFlagResult.cuffsFitProperly) {
+                                measStatusFlagResult?.let { flag2 ->
+                                    resultMap[stringResource(R.string.cuffs_fit)] = stringResource(R.string.yes)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flag3 ->
+                                    resultMap[stringResource(R.string.cuffs_fit)] = stringResource(R.string.no)
+                                }
+                            }
+
+                            if(measStatusFlagResult.noIrregularPulseDetected) {
+                                measStatusFlagResult?.let { flag4 ->
+                                    resultMap[stringResource(R.string.irregular_pulse_detected)] = stringResource(R.string.no)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flag5 ->
+                                    resultMap[stringResource(R.string.irregular_pulse_detected)] = stringResource(R.string.yes)
+                                }
+                            }
+
+                            if(measStatusFlagResult.pulseStatus == 0) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.proper)
+                                }
+                            } else if(measStatusFlagResult.pulseStatus == 1) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.over_the_proper)
+                                }
+                            } else if(measStatusFlagResult.pulseStatus == 2) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.below_the_proper)
+                                }
+                            } else if(measStatusFlagResult.pulseStatus == 3) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] = stringResource(R.string.no_info)
+                                }
+                            }
+
+                            if(measStatusFlagResult.properMeasurementPosition) {
+                                measStatusFlagResult?.let { flag7 ->
+                                    resultMap[stringResource(R.string.proper_meas_position)] = stringResource(R.string.yes)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flags ->
+                                    resultMap[stringResource(R.string.proper_meas_position)] = stringResource(R.string.no)
+                                }
+                            }
+                        }
+                    } else {
+
+                    }
+                }else {
+
+                    val timestamp = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy")
+                    val formattedDateTime = timestamp?.format(formatter)
+                    formattedDateTime?.let { resultMap[stringResource(R.string.time_of_measurement)] = formattedDateTime}
+
+                    if (flagResult.isPulsePresent) {
+                        val PulseMeas =
+                            parsePulseMeasurement(characteristicValue.copyOfRange(7, 9))
+                        PulseMeas?.let { Pulse ->
+                            val unit = "/min"
+                            resultMap[stringResource(R.string.pulse)] = "$Pulse $unit"
+                            resultMap["PulseResult"] = Pulse
+                            resultMap["PulseUnit"] = "$unit"
+                        }
+                    }
+
+                    if (flagResult.isMeasStatusFlagPresent) {
+                        //val byteArray = characteristicValue.takeLast(2).toByteArray()
+                        val measStatusFlagResult = parseMeasStatusFlag(characteristicValue[10])
+
+                        if (measStatusFlagResult != null) {
+                            if (measStatusFlagResult.noBodyMovement) {
+                                measStatusFlagResult?.let { flag0 ->
+                                    resultMap[stringResource(R.string.body_movement_detected)] =
+                                        stringResource(R.string.no)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flag1 ->
+                                    resultMap[stringResource(R.string.body_movement_detected)] =
+                                        stringResource(R.string.yes)
+                                }
+                            }
+
+                            if (measStatusFlagResult.cuffsFitProperly) {
+                                measStatusFlagResult?.let { flag2 ->
+                                    resultMap[stringResource(R.string.cuffs_fit)] =
+                                        stringResource(R.string.yes)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flag3 ->
+                                    resultMap[stringResource(R.string.cuffs_fit)] =
+                                        stringResource(R.string.no)
+                                }
+                            }
+
+                            if (measStatusFlagResult.noIrregularPulseDetected) {
+                                measStatusFlagResult?.let { flag4 ->
+                                    resultMap[stringResource(R.string.irregular_pulse_detected)] =
+                                        stringResource(R.string.no)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flag5 ->
+                                    resultMap[stringResource(R.string.irregular_pulse_detected)] =
+                                        stringResource(R.string.yes)
+                                }
+                            }
+
+                            if (measStatusFlagResult.pulseStatus == 0) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] =
+                                        stringResource(R.string.proper)
+                                }
+                            } else if (measStatusFlagResult.pulseStatus == 1) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] =
+                                        stringResource(R.string.over_the_proper)
+                                }
+                            } else if (measStatusFlagResult.pulseStatus == 2) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] =
+                                        stringResource(R.string.below_the_proper)
+                                }
+                            } else if (measStatusFlagResult.pulseStatus == 3) {
+                                measStatusFlagResult?.let { flag6 ->
+                                    resultMap[stringResource(R.string.pulse_status)] =
+                                        stringResource(R.string.no_info)
+                                }
+                            }
+
+                            if (measStatusFlagResult.properMeasurementPosition) {
+                                measStatusFlagResult?.let { flag7 ->
+                                    resultMap[stringResource(R.string.proper_meas_position)] =
+                                        stringResource(R.string.yes)
+                                }
+                            } else {
+                                measStatusFlagResult?.let { flags ->
+                                    resultMap[stringResource(R.string.proper_meas_position)] =
+                                        stringResource(R.string.no)
+                                }
+                            }
+                        }
+                    } else {
+
+                    }
                 }
 
                 /*TODO: isUserIdPresent*/

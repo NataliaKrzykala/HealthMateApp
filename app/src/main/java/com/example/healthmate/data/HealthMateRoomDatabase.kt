@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@Database(entities = [Urzadzenie::class, Pomiar::class, ParametrPomiaru::class, Uzytkownik::class], version = 5, exportSchema = false)
+@Database(entities = [Urzadzenie::class, Pomiar::class, ParametrPomiaru::class, Uzytkownik::class], version = 6, exportSchema = false)
 public abstract class HealthMateRoomDatabase : RoomDatabase() {
 
     abstract fun urzadzenieDAO(): UrzadzenieDAO

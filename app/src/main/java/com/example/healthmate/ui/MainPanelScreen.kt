@@ -54,8 +54,8 @@ fun MainPanelScreen(
     val loggedUser = healthMateUiState.user
     //Log.e("Logged User11111", "$loggedUser")
 
-    LaunchedEffect(loggedUser.uzytkownikId) {
-        bluetoothViewModel.loadSensorsForUser(loggedUser.uzytkownikId)
+    LaunchedEffect(loggedUser.login) {
+        bluetoothViewModel.loadSensorsForUser(loggedUser.login)
     }
 
     // Obserwuj stan czujników
