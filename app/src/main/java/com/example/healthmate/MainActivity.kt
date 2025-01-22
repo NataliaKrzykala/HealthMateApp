@@ -28,7 +28,7 @@ import androidx.work.PeriodicWorkRequest
 class MainActivity : ComponentActivity(
 
 ) {
-    private lateinit var syncWorkRequest: PeriodicWorkRequest
+    //private lateinit var syncWorkRequest: PeriodicWorkRequest
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()

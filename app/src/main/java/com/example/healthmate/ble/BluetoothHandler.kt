@@ -235,14 +235,16 @@ class BluetoothHandler(
                 arrayOf(
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
                 )
             )
         } else {
             Log.e("PERMISSIONS", "CHECK2")
             bluetoothPermissionLauncher.launch(
-                arrayOf(Manifest.permission.BLUETOOTH_ADMIN)
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_ADMIN,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+
             )
         }
     }
